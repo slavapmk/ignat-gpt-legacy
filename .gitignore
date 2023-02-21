@@ -1,0 +1,5 @@
+config.py
+dialogues.json
+venv/
+.idea/
+__pycache__/
