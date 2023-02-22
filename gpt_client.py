@@ -5,6 +5,7 @@ import logging
 import openai
 from aiogram import Bot, Dispatcher, types
 from aiogram.utils import executor
+from openai.error import RateLimitError, Timeout, TryAgain
 
 import config
 
@@ -22,7 +23,7 @@ def keys_to_int(x):
 
 dialogue = {}
 try:
-    with open('dialogues.json', 'r') as f:
+    with open('../gpt/dialogues.json', 'r') as f:
         read = f.read()
         if read != '':
             dialogue = json.loads(read, object_hook=keys_to_int)
@@ -31,7 +32,7 @@ except IOError:
 
 
 def exit_handler():
-    with open('dialogues.json', 'w') as file_to_save:
+    with open('../gpt/dialogues.json', 'w') as file_to_save:
         json.dump(dialogue, file_to_save)
 
 
@@ -78,26 +79,47 @@ async def process(message: types.Message, text: str):
     if message.chat.id in dialogue:
         last = dialogue[message.chat.id]
     request = f'{last}\nHuman: {text}\n'
-    len_request_ = 4048 - len(request)
-    if len_request_ <= 100:
-        await replied_message.edit_text('Диалог слишком длинный. Пожалуйста начните заного.')
+    result_size = 4048 - len(request)
+    if result_size <= 100:
+        await replied_message.edit_text('Диалог слишком длинный. Пожалуйста начните заного (/reset).')
         return
-    response = openai.Completion.create(
-        model="text-davinci-003",
-        prompt=request,
-        temperature=0.9,
-        max_tokens=len_request_,
-        top_p=1,
-        frequency_penalty=0.9,
-        presence_penalty=0.6,
-        stop=[" Human:", " AI:"],
-        user=str(message.chat.id)
-    )['choices'][0]['text']
-    if response.startswith('\n'):
-        response = response[1:]
-    dialogue[message.chat.id] = f'{request}{response}'
+    first = True
+    retry = False
+    i = 1
+    while first or retry:
+        first = False
+        try:
+            response = openai.Completion.create(
+                model="text-davinci-003",
+                prompt=request,
+                temperature=0.9,
+                max_tokens=result_size,
+                top_p=1,
+                frequency_penalty=0.9,
+                presence_penalty=0.6,
+                stop=[" Human:", " AI:"],
+                user=str(message.chat.id)
+            )
+            retry = False
+            response_text = response['choices'][0]['text']
+        except RateLimitError or Timeout or TryAgain:
+            retry = True
+            i += 1
+            await replied_message.edit_text(f'Обработка - попытка {i}')
+        except openai.error.OpenAIError as e:
+            await replied_message.edit_text(f"OpenAI API returned an Error: {e}")
+            return
 
-    await replied_message.edit_text(response[4:])
+    while response_text.startswith('\n'):
+        response_text = response_text[1:]
+    dialogue[message.chat.id] = f'{request}{response_text}'
+    send_text = response_text
+    while send_text.startswith('AI: '):
+        send_text = send_text[3:]
+    while send_text.startswith(' '):
+        send_text = send_text[1:]
+
+    await replied_message.edit_text(send_text)
 
 
 if __name__ == '__main__':
