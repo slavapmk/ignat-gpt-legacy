@@ -21,4 +21,6 @@ def remove_symbols(text: str, blacklist: str):
 
 def is_russian(text: str):
     text = remove_symbols(text, symbols)
+    if len(text) == 0:
+        return False
     return count_alph(text, ru_alphabet) / len(text) * 100 >= 50
