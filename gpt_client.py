@@ -8,6 +8,7 @@ from aiogram.utils import executor
 from openai.error import RateLimitError, Timeout, TryAgain
 
 import config
+import translate
 
 openai.api_key = config.openai_token
 
@@ -73,8 +74,15 @@ async def process_pm(message: types.Message):
 
 
 async def process(message: types.Message, text: str):
+    text = text.strip()
     replied_message = await message.reply('Обработка')
-
+    if text == '':
+        await replied_message.edit_text('Запрос пустой. Отправьте заного')
+        return
+    if len(text) >= 500:
+        await replied_message.edit_text('Запрос слишком длинный. Переформулируйте его до 500 символов.')
+        return
+    text = translate.auto_english(text)
     last = 'AI: Start Messaging'
     if message.chat.id in dialogue:
         last = dialogue[message.chat.id]
@@ -95,7 +103,7 @@ async def process(message: types.Message, text: str):
                 temperature=0.9,
                 max_tokens=result_size,
                 top_p=1,
-                frequency_penalty=0.9,
+                frequency_penalty=0.1,
                 presence_penalty=0.6,
                 stop=[" Human:", " AI:"],
                 user=str(message.chat.id)
@@ -110,14 +118,11 @@ async def process(message: types.Message, text: str):
             await replied_message.edit_text(f"OpenAI API returned an Error: {e}")
             return
 
-    while response_text.startswith('\n'):
-        response_text = response_text[1:]
-    dialogue[message.chat.id] = f'{request}{response_text}'
-    send_text = response_text
+    send_text = response_text.strip()
     while send_text.startswith('AI: '):
         send_text = send_text[3:]
-    while send_text.startswith(' '):
-        send_text = send_text[1:]
+    send_text = send_text.strip()
+    dialogue[message.chat.id] = f'{request}AI: {send_text}'
 
     await replied_message.edit_text(send_text)
 
