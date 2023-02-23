@@ -11,7 +11,8 @@ def translate(text: str, lang_pair: str):
             "https://api.mymemory.translated.net/get",
             params={
                 "q": text,
-                "langpair": lang_pair
+                "langpair": lang_pair,
+                "de": "slavapmk@gmail.com"
             }
         ).text
     )['responseData']['translatedText']
