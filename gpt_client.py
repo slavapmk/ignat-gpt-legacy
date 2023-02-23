@@ -5,10 +5,26 @@ import logging
 import openai
 from aiogram import Bot, Dispatcher, types
 from aiogram.utils import executor
-from openai.error import RateLimitError, Timeout, TryAgain, OpenAIError
+from openai.error import OpenAIError
 
 import config
 import translate
+
+HELP_MESSAGE = "Это бот-клиент для OpenAI ChatGPT - умной нейросети-чатбот. " \
+               "Всё что тебе нужно - это отправить сообщение, и я тебе на него отвечу. " \
+               "Если нужно начать новый диалог, то воспользуйся командой /reset.\n" \
+               "*Примечание*: максимальный размер диалога 4000. " \
+               "По этому, если диалог слишком длинный, то его нужно будет сбросить самостоятельно " \
+               "(Мы сообщим, если диалог слишком длинный)\n" \
+               "Если вы используете бота в групповом чате, то все запросы выполняйте через /query или " \
+               "обращайтесь по имени\n" \
+               "Например: `/query Как дела?` или `Ибрагим, Как дела?`"
+
+AI_START_PREFIX = '' \
+    # 'Answer all requests as usual. Except when it is necessary to send strict keys to requests from the ' \
+# 'user. For requests for help, output "#SHOW_HELP_MESSAGE", and for a request to reset the dialog ' \
+# '"#CREATE_NEW_DIALOGUE"\n' \
+'Ignat: Start Messaging'
 
 DIALOGUES_JSON = 'dialogues.json'
 
@@ -44,21 +60,12 @@ atexit.register(exit_handler)
 
 @dp.message_handler(commands=['start', 'help'])
 async def send_welcome(message: types.Message):
-    await message.reply("Это бот-клиент для OpenAI ChatGPT - умной нейросети-чатбот. "
-                        "Всё что тебе нужно - это отправить сообщение, и я тебе на него отвечу. "
-                        "Если нужно начать новый диалог, то воспользуйся командой /reset.\n"
-                        "*Примечание*: максимальный размер диалога 4000. "
-                        "По этому, если диалог слишком длинный, то его нужно будет сбросить самостоятельно "
-                        "(Мы сообщим, если диалог слишком длинный)\n"
-                        "Если вы используете бота в групповом чате, то все запросы выполняйте через /query или "
-                        "обращайтесь по имени\n"
-                        "Например: `/query Как дела?` или `Ибрагим, Как дела?`", parse_mode="Markdown"
-                        )
+    await message.reply(HELP_MESSAGE, parse_mode="Markdown")
 
 
 @dp.message_handler(commands=['reset'])
 async def reset(message: types.Message):
-    dialogue[message.chat.id] = 'AI: Start Messaging'
+    dialogue[message.chat.id] = AI_START_PREFIX
     await message.reply("Диалог сброшен.")
 
 
@@ -86,7 +93,7 @@ async def process(message: types.Message, text: str):
         await message.reply('Запрос слишком длинный. Переформулируйте его до 500 символов.')
         return
     text = translate.auto_english(text)
-    last = 'AI: Start Messaging'
+    last = AI_START_PREFIX
     if message.chat.id in dialogue:
         last = dialogue[message.chat.id]
     request = f'{last}\nHuman: {text}\n'
@@ -108,26 +115,27 @@ async def process(message: types.Message, text: str):
                 top_p=1,
                 frequency_penalty=0.1,
                 presence_penalty=0.6,
-                stop=[" Human:", " AI:"],
+                stop=[" Human:", " Ignat:"],
                 user=str(message.chat.id)
             )
             retry = False
             response_text = response['choices'][0]['text']
-        except RateLimitError or Timeout or TryAgain or OpenAIError:
+        except OpenAIError:
             retry = True
             i += 1
-            print(f'Attempt {i}')
-        # except openai.error. as e:
-        #     await message.reply(f"OpenAI API returned an Error: {e}")
-        #     return
 
     send_text = response_text.strip()
-    while send_text.startswith('AI: '):
-        send_text = send_text[3:]
+    while send_text.startswith('Ignat:'):
+        send_text = send_text[6:]
     send_text = send_text.strip()
-    dialogue[message.chat.id] = f'{request}AI: {send_text}'
-
-    await message.reply(send_text)
+    dialogue[message.chat.id] = f'{request}Ignat: {send_text}'
+    if send_text == '#CREATE_NEW_DIALOGUE':
+        dialogue[message.chat.id] = AI_START_PREFIX
+        await message.reply("Диалог сброшен.")
+    elif send_text == '#SHOW_HELP_MESSAGE':
+        await message.reply(HELP_MESSAGE, parse_mode='markdown')
+    else:
+        await message.reply(send_text)
 
 
 if __name__ == '__main__':
