@@ -48,8 +48,9 @@ async def send_welcome(message: types.Message):
                         "*Примечание*: максимальный размер диалога 4000. "
                         "По этому, если диалог слишком длинный, то его нужно будет сбросить самостоятельно "
                         "(Мы сообщим, если диалог слишком длинный)\n"
-                        "Если вы используете бота в групповом чате, то все запросы выполняйте через /query\n"
-                        "Например: `/query Как дела?`", parse_mode="Markdown"
+                        "Если вы используете бота в групповом чате, то все запросы выполняйте через /query или "
+                        "обращайтесь по имени\n"
+                        "Например: `/query Как дела?` или `Ибрагим, Как дела?`", parse_mode="Markdown"
                         )
 
 
@@ -75,12 +76,12 @@ async def process_pm(message: types.Message):
 
 async def process(message: types.Message, text: str):
     text = text.strip()
-    replied_message = await message.reply('Обработка')
+    await message.chat.do(action='typing')
     if text == '':
-        await replied_message.edit_text('Запрос пустой. Отправьте заного')
+        await message.reply('Запрос пустой. Отправьте заного')
         return
     if len(text) >= 500:
-        await replied_message.edit_text('Запрос слишком длинный. Переформулируйте его до 500 символов.')
+        await message.reply('Запрос слишком длинный. Переформулируйте его до 500 символов.')
         return
     text = translate.auto_english(text)
     last = 'AI: Start Messaging'
@@ -89,7 +90,7 @@ async def process(message: types.Message, text: str):
     request = f'{last}\nHuman: {text}\n'
     result_size = 4048 - len(request)
     if result_size <= 100:
-        await replied_message.edit_text('Диалог слишком длинный. Пожалуйста начните заного (/reset).')
+        await message.reply('Диалог слишком длинный. Пожалуйста начните заного (/reset).')
         return
     first = True
     retry = False
@@ -113,9 +114,8 @@ async def process(message: types.Message, text: str):
         except RateLimitError or Timeout or TryAgain:
             retry = True
             i += 1
-            await replied_message.edit_text(f'Обработка - попытка {i}')
         except openai.error.OpenAIError as e:
-            await replied_message.edit_text(f"OpenAI API returned an Error: {e}")
+            await message.reply(f"OpenAI API returned an Error: {e}")
             return
 
     send_text = response_text.strip()
@@ -124,7 +124,7 @@ async def process(message: types.Message, text: str):
     send_text = send_text.strip()
     dialogue[message.chat.id] = f'{request}AI: {send_text}'
 
-    await replied_message.edit_text(send_text)
+    await message.reply(send_text)
 
 
 if __name__ == '__main__':
