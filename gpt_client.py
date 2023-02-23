@@ -18,13 +18,9 @@ HELP_MESSAGE = "Это бот-клиент для OpenAI ChatGPT - умной н
                "(Мы сообщим, если диалог слишком длинный)\n" \
                "Если вы используете бота в групповом чате, то все запросы выполняйте через /query или " \
                "обращайтесь по имени\n" \
-               "Например: `/query Как дела?` или `Ибрагим, Как дела?`"
+               "Например: `/query Как дела?` или `Игнат, Как дела?`"
 
-AI_START_PREFIX = '' \
-    # 'Answer all requests as usual. Except when it is necessary to send strict keys to requests from the ' \
-# 'user. For requests for help, output "#SHOW_HELP_MESSAGE", and for a request to reset the dialog ' \
-# '"#CREATE_NEW_DIALOGUE"\n' \
-'Ignat: Start Messaging'
+AI_START_PREFIX = 'Ignat: I am Ignat - ChatGPT Client in Telegram Bot, let\'s talk?'
 
 DIALOGUES_JSON = 'dialogues.json'
 
@@ -65,7 +61,7 @@ async def send_welcome(message: types.Message):
 
 @dp.message_handler(commands=['reset'])
 async def reset(message: types.Message):
-    dialogue[message.chat.id] = AI_START_PREFIX
+    del dialogue[message.chat.id]
     await message.reply("Диалог сброшен.")
 
 
