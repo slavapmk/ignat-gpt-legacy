@@ -5,10 +5,12 @@ import logging
 import openai
 from aiogram import Bot, Dispatcher, types
 from aiogram.utils import executor
-from openai.error import RateLimitError, Timeout, TryAgain
+from openai.error import RateLimitError, Timeout, TryAgain, OpenAIError
 
 import config
 import translate
+
+DIALOGUES_JSON = 'dialogues.json'
 
 openai.api_key = config.openai_token
 
@@ -24,7 +26,7 @@ def keys_to_int(x):
 
 dialogue = {}
 try:
-    with open('../gpt/dialogues.json', 'r') as f:
+    with open(DIALOGUES_JSON, 'r') as f:
         read = f.read()
         if read != '':
             dialogue = json.loads(read, object_hook=keys_to_int)
@@ -33,7 +35,7 @@ except IOError:
 
 
 def exit_handler():
-    with open('../gpt/dialogues.json', 'w') as file_to_save:
+    with open(DIALOGUES_JSON, 'w') as file_to_save:
         json.dump(dialogue, file_to_save)
 
 
@@ -111,12 +113,13 @@ async def process(message: types.Message, text: str):
             )
             retry = False
             response_text = response['choices'][0]['text']
-        except RateLimitError or Timeout or TryAgain:
+        except RateLimitError or Timeout or TryAgain or OpenAIError:
             retry = True
             i += 1
-        except openai.error.OpenAIError as e:
-            await message.reply(f"OpenAI API returned an Error: {e}")
-            return
+            print(f'Attempt {i}')
+        # except openai.error. as e:
+        #     await message.reply(f"OpenAI API returned an Error: {e}")
+        #     return
 
     send_text = response_text.strip()
     while send_text.startswith('AI: '):
