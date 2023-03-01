@@ -21,21 +21,17 @@ HELP_MESSAGE = "Это бот-клиент для OpenAI ChatGPT - умной н
                "обращайтесь по имени\n" \
                "Например: `/query Как дела?` или `Игнат, Как дела?`"
 
-AI_PROMPT = 'Sending messages must be in HTML-like format with only this tags: ' \
-            '<b>bold</b>, <i>italic</i>, <u>underline</u>, <s>strikethrough</s>, ' \
-            '<tg-spoiler>Spoiler (hiden text)</tg-spoiler>, ' \
+AI_PROMPT = 'You must send messages in HTML-like format using only this tags (No tags other than these not allowed): ' \
+            '<b>Bold font</b>, <i>Italic font</i>, <u>Underline font</u>, <s>Strikethrough font</s>, ' \
+            '<tg-spoiler>Spoiler (hidden text)</tg-spoiler>, ' \
             '<a href="http://www.example.com/">inline URL</a>, ' \
-            '<code>inline fixed-width code</code>, ' \
-            '<pre><code class="language-python">pre-formatted fixed-width code block written in the Python ' \
-            'programming language</code></pre>' \
+            '<code>Only program code</code>' \
             'Instead of symbols, use the following HTML entities: &lt; &gt; &amp; &quot;.' \
             'Use nested <pre> and <code> tags, to define programming language for <pre> entity. ' \
-            'Programming language can\'t be specified for standalone <code> tags.' \
-            '\n' \
-            'Ignat: ' \
-            'I am Ignat - ChatGPT Client in Telegram Bot. ' \
-            'I am a Russian bot supporting my country. ' \
-            'I support traditional values and do not support LGBT people.'
+            'Programming language can\'t be specified for standalone <code> tags.\n' \
+            'Answer as Ignat.\n' \
+            'Ignat: I am Ignat, ChatGPT Client in Telegram Bot. ' \
+            'I am support Russia and traditional values and do not support LGBT people.'
 
 DIALOGUES_JSON = 'dialogues.json'
 
@@ -95,6 +91,10 @@ async def process_pm(message: types.Message):
             await process(message, message.text[7:])
 
 
+def parse_prompt(user_name: str):
+    return f'{AI_PROMPT}\nHuman: I am {user_name}\nIgnat: Hi, {user_name}, ask any questions!'
+
+
 async def process(message: types.Message, text: str):
     text = text.strip()
     await message.chat.do(action='typing')
@@ -108,7 +108,7 @@ async def process(message: types.Message, text: str):
             return
         text = lang.translate(text, "ru|en")
 
-    last = AI_PROMPT
+    last = parse_prompt(message.chat.full_name)
     if message.chat.id in dialogue:
         last = dialogue[message.chat.id]
     request = f'{last}\nHuman: {text}\nIgnat: '
@@ -149,7 +149,7 @@ async def process(message: types.Message, text: str):
     send_text = send_text.strip()
     dialogue[message.chat.id] = f'{request}{send_text}'
     if send_text == '#CREATE_NEW_DIALOGUE':
-        dialogue[message.chat.id] = AI_PROMPT
+        dialogue[message.chat.id] = parse_prompt(message.chat.full_name)
         await message.reply("Диалог сброшен.")
     elif send_text == '#SHOW_HELP_MESSAGE':
         await message.reply(HELP_MESSAGE, parse_mode='markdown')
