@@ -108,9 +108,7 @@ async def process(message: types.Message, text: str):
     if message.chat.id in dialogue:
         last = dialogue[message.chat.id]
     request = f'{last}\nHuman: {text}\nIgnat: '
-    tokens_count = lang.tokens_count(request)
-    result_tokens_count = 4096 - tokens_count
-    print(tokens_count, result_tokens_count)
+    result_tokens_count = 4096 - lang.tokens_count(request)
     if result_tokens_count <= 10:
         await message.reply('Диалог слишком длинный. Пожалуйста начните заного (/reset).')
         return
