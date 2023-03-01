@@ -1,0 +1,2 @@
+#!/bin/sh
+screen python3 gpt_client.py
