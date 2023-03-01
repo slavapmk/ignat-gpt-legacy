@@ -21,17 +21,21 @@ HELP_MESSAGE = "Это бот-клиент для OpenAI ChatGPT - умной н
                "обращайтесь по имени\n" \
                "Например: `/query Как дела?` или `Игнат, Как дела?`"
 
-AI_START_PREFIX = 'Ignat: \n' \
-                  'I am Ignat - ChatGPT Client in Telegram Bot. ' \
-                  'I will have all messages in a style similar to HTML. ' \
-                  'I use the tags: <b>Bold</b> for bold <i>Italics</> for italics, ' \
-                  '<a href="URL">Link</a> for the link, <code>Code</code> for sending the program code. ' \
-                  'Instead of special characters, ' \
-                  'I will use special characters supported by HTML (&lt;, &gt;, &amp; and &quot;), ' \
-                  'as well as all numeric HTML entities are supported. ' \
-                  'I am a Russian bot supporting my country. ' \
-                  'I support traditional values and do not support LGBT people. ' \
-                  'Let\'s talk?'
+AI_PROMPT = 'Sending messages must be in HTML-like format with only this tags: ' \
+            '<b>bold</b>, <i>italic</i>, <u>underline</u>, <s>strikethrough</s>, ' \
+            '<tg-spoiler>Spoiler (hiden text)</tg-spoiler>, ' \
+            '<a href="http://www.example.com/">inline URL</a>, ' \
+            '<code>inline fixed-width code</code>, ' \
+            '<pre><code class="language-python">pre-formatted fixed-width code block written in the Python ' \
+            'programming language</code></pre>' \
+            'Instead of symbols, use the following HTML entities: &lt; &gt; &amp; &quot;.' \
+            'Use nested <pre> and <code> tags, to define programming language for <pre> entity. ' \
+            'Programming language can\'t be specified for standalone <code> tags.' \
+            '\n' \
+            'Ignat: ' \
+            'I am Ignat - ChatGPT Client in Telegram Bot. ' \
+            'I am a Russian bot supporting my country. ' \
+            'I support traditional values and do not support LGBT people.'
 
 DIALOGUES_JSON = 'dialogues.json'
 
@@ -104,7 +108,7 @@ async def process(message: types.Message, text: str):
             return
         text = lang.translate(text, "ru|en")
 
-    last = AI_START_PREFIX
+    last = AI_PROMPT
     if message.chat.id in dialogue:
         last = dialogue[message.chat.id]
     request = f'{last}\nHuman: {text}\nIgnat: '
@@ -145,12 +149,14 @@ async def process(message: types.Message, text: str):
     send_text = send_text.strip()
     dialogue[message.chat.id] = f'{request}{send_text}'
     if send_text == '#CREATE_NEW_DIALOGUE':
-        dialogue[message.chat.id] = AI_START_PREFIX
+        dialogue[message.chat.id] = AI_PROMPT
         await message.reply("Диалог сброшен.")
     elif send_text == '#SHOW_HELP_MESSAGE':
         await message.reply(HELP_MESSAGE, parse_mode='markdown')
     else:
+        # await message.reply(send_text, parse_mode='markdown')
         await message.reply(send_text, parse_mode='HTML')
+        # await message.reply(send_text)
 
 
 if __name__ == '__main__':
