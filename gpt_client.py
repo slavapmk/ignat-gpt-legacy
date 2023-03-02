@@ -23,12 +23,12 @@ HELP_MESSAGE = "*Это бот-клиент для OpenAI GPT-3* - умной т
                "обращайтесь по имени\n" \
                "*Пример:* `/query Как дела?` или `Игнат, Как дела?`"
 
-AI_PROMPT = 'You must send messages in HTML-like format using only this tags (No tags other than these not allowed): ' \
+AI_PROMPT = 'You must send messages in XML-like format using only this tags (No tags other than these not allowed): ' \
             '<b>Bold font</b>, <i>Italic font</i>, <u>Underline font</u>, <s>Strikethrough font</s>, ' \
             '<tg-spoiler>Spoiler (hidden text)</tg-spoiler>, ' \
             '<a href="http://www.example.com/">Clickable text</a>, ' \
             '<code>Only program code, like a python. Not plain text like messages or essays</code>' \
-            'Instead of bracket symbols, use the following HTML entities: &lt; &gt; &amp; &quot;.' \
+            'Instead of bracket symbols, use the following entities: &lt; &gt; &amp; &quot;.' \
             'Use nested <pre> and <code> tags, to define programming language for <pre> entity. ' \
             'Programming language can\'t be specified for standalone <code> tags.\n' \
             'Answer as Ignat.\n' \
@@ -151,7 +151,7 @@ async def process(message: types.Message, text: str):
                 top_p=1,
                 frequency_penalty=0.1,
                 presence_penalty=0.6,
-                stop=[" Human:", " Ignat:"],
+                stop=["Human:", "Ignat:"],
                 user=str(message.chat.id)
             )
             retry = False
