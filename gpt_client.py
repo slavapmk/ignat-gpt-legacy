@@ -171,7 +171,12 @@ async def process(message: types.Message, text: str):
         await message.reply(HELP_MESSAGE, parse_mode='markdown')
     else:
         # await message.reply(send_text, parse_mode='markdown')
-        await message.reply(send_text, parse_mode='HTML')
+        try:
+            await message.reply(send_text, parse_mode='HTML')
+        except aiogram.utils.exceptions.CantParseEntities:
+            await message.reply("Сообщение не может быть отправлено со всеми шрифтами.")
+            await message.answer(send_text)
+            print(send_text)
         # await message.reply(send_text)
 
 
