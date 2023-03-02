@@ -7,6 +7,7 @@ import openai
 from aiogram import Bot, Dispatcher, types
 from aiogram.utils import executor
 from openai.error import OpenAIError
+from aiogram.utils.exceptions import CantParseEntities
 
 import lang
 import tokens
@@ -173,10 +174,10 @@ async def process(message: types.Message, text: str):
         # await message.reply(send_text, parse_mode='markdown')
         try:
             await message.reply(send_text, parse_mode='HTML')
-        except aiogram.utils.exceptions.CantParseEntities:
+        except CantParseEntities:
             await message.reply("Сообщение не может быть отправлено со всеми шрифтами.")
             await message.answer(send_text)
-            print(send_text)
+            print("Parse error")
         # await message.reply(send_text)
 
 
