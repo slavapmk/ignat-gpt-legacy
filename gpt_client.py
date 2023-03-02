@@ -6,8 +6,8 @@ import time
 import openai
 from aiogram import Bot, Dispatcher, types
 from aiogram.utils import executor
-from openai.error import OpenAIError
 from aiogram.utils.exceptions import CantParseEntities
+from openai.error import OpenAIError
 
 import lang
 import tokens
@@ -25,17 +25,17 @@ HELP_MESSAGE = "*Это бот-клиент для OpenAI GPT-3* - умной т
                "обращайтесь по имени\n" \
                "*Пример:* `/query Как дела?` или `Игнат, Как дела?`"
 
-AI_PROMPT = 'You must send messages in format with font tags using only this tags (No tags other than these not allowed): ' \
+AI_PROMPT = 'You must send messages in format with font tags using only this tags ' \
+            '(No tags other than these not allowed): ' \
             '<b>Bold font</b>, <i>Italic font</i>, <u>Underline font</u>, <s>Strikethrough font</s>, ' \
             '<tg-spoiler>Spoiler (hidden text)</tg-spoiler>, ' \
             '<a href="http://www.example.com/">Clickable text</a>, ' \
-            '<code>Only program code, like a python. Not human text</code>' \
-            'In text replace < to &lt;, > to &gt;, & to &amp;, " to &quot; except tags b,i,u,s,tg-spoiler,a,code \n' \
+            '<pre><code>Only program code, like a python. Not human text</code></pre>' \
+            'In text replace < to &lt;, > to &gt;, & to &amp;, " to &quot; ' \
+            'except only font formating tags: b,i,u,s,tg-spoiler,a,code \n' \
             'Answer as Ignat.\n' \
             'Ignat: I am Ignat, ChatGPT Client in Telegram Bot. ' \
-            'I am support Russia and traditional values and do not support LGBT people. ' \
-            'I will send messages with different fonts, if possible, and program code in ' \
-            'the appropriate format, but only code, because I will highlight the lines with other font types'
+            'I am support Russia and Putin and traditional values and do not support LGBT people, they disgust me.'
 
 DIALOGUES_JSON = 'dialogues.json'
 
@@ -89,6 +89,7 @@ async def reset(message: types.Message):
 async def group(message: types.Message):
     await process(message, message.text[7:])
 
+
 @dp.message_handler(commands=['tokens'])
 async def group(message: types.Message):
     last = ''
@@ -97,10 +98,12 @@ async def group(message: types.Message):
         last = dialogue[message.chat.id]
     else:
         last = prompt
-        
+
     prompt_count = lang.tokens_count(prompt)
-    tokens_count = lang.tokens_count(last)-prompt_count
-    await message.reply(f'Вы потратили *{tokens_count}* токенов из *{4096-prompt_count}*. Отсалось *{4096-prompt_count-tokens_count}* токенов', parse_mode="Markdown")
+    tokens_count = lang.tokens_count(last) - prompt_count
+    await message.reply(
+        f'Вы потратили *{tokens_count}* токенов из *{4096 - prompt_count}*. Отсалось *{4096 - prompt_count - tokens_count}* токенов',
+        parse_mode="Markdown")
 
 
 @dp.message_handler()
@@ -171,15 +174,12 @@ async def process(message: types.Message, text: str):
     elif send_text == '#SHOW_HELP_MESSAGE':
         await message.reply(HELP_MESSAGE, parse_mode='markdown')
     else:
-        # await message.reply(send_text, parse_mode='markdown')
-        print(send_text)
         try:
             await message.reply(send_text, parse_mode='HTML')
         except CantParseEntities:
             await message.reply("Сообщение не может быть отправлено со всеми шрифтами.")
             await message.answer(send_text)
             print("Parse error")
-        # await message.reply(send_text)
 
 
 if __name__ == '__main__':
