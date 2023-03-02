@@ -96,7 +96,7 @@ async def group(message: types.Message):
         
     prompt_count = lang.tokens_count(prompt)
     tokens_count = lang.tokens_count(last)-prompt_count
-    await message.reply(f'Вы потратили *{tokens_count}* токенов из *{4096-prompt_count}*. Отсалось *{4096-tokens_count}* токенов', parse_mode="Markdown")
+    await message.reply(f'Вы потратили *{tokens_count}* токенов из *{4096-prompt_count}*. Отсалось *{4096-prompt_count-tokens_count}* токенов', parse_mode="Markdown")
 
 
 @dp.message_handler()
