@@ -25,7 +25,7 @@ AI_PROMPT = 'You must send messages in HTML-like format using only this tags (No
             '<b>Bold font</b>, <i>Italic font</i>, <u>Underline font</u>, <s>Strikethrough font</s>, ' \
             '<tg-spoiler>Spoiler (hidden text)</tg-spoiler>, ' \
             '<a href="http://www.example.com/">inline URL</a>, ' \
-            '<code>Only program code</code>' \
+            '<code>Only program code, like a python. Not plain text like messages or essays</code>' \
             'Instead of symbols, use the following HTML entities: &lt; &gt; &amp; &quot;.' \
             'Use nested <pre> and <code> tags, to define programming language for <pre> entity. ' \
             'Programming language can\'t be specified for standalone <code> tags.\n' \
@@ -80,6 +80,14 @@ async def reset(message: types.Message):
 @dp.message_handler(commands=['query'])
 async def group(message: types.Message):
     await process(message, message.text[7:])
+
+@dp.message_handler(commands=['tokens'])
+async def group(message: types.Message):
+    last = ''
+    if message.chat.id in dialogue:
+        last = dialogue[message.chat.id]
+    tokens_count = lang.tokens_count(last)
+    await message.reply(f'Вы потратили *{tokens_count}* токенов из 4096. Отсалось *{4096-tokens_count}*', parse_mode="Markdown")
 
 
 @dp.message_handler()
