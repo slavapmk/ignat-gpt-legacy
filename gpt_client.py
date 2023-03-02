@@ -65,6 +65,10 @@ def exit_handler():
 atexit.register(exit_handler)
 
 
+def parse_prompt(user_name: str):
+    return f'{AI_PROMPT}\nHuman: I am {user_name}\nIgnat: Hi, {user_name}, ask any questions!'
+
+
 @dp.message_handler(commands=['start', 'help'])
 async def send_welcome(message: types.Message):
     await message.reply(HELP_MESSAGE, parse_mode="Markdown")
@@ -86,8 +90,10 @@ async def group(message: types.Message):
     last = ''
     if message.chat.id in dialogue:
         last = dialogue[message.chat.id]
+    else:
+        last = parse_prompt(message.chat.full_name)
     tokens_count = lang.tokens_count(last)
-    await message.reply(f'Вы потратили *{tokens_count}* токенов из 4096. Отсалось *{4096-tokens_count}*', parse_mode="Markdown")
+    await message.reply(f'Вы потратили *{tokens_count}* токенов из *4096*. Отсалось *{4096-tokens_count}* токенов', parse_mode="Markdown")
 
 
 @dp.message_handler()
@@ -97,10 +103,6 @@ async def process_pm(message: types.Message):
     elif message.chat.type == 'group' or message.chat.type == 'super_group' or message.chat.type == 'supergroup':
         if message.text.startswith('Игнат, ') or message.text.startswith('Ignat, '):
             await process(message, message.text[7:])
-
-
-def parse_prompt(user_name: str):
-    return f'{AI_PROMPT}\nHuman: I am {user_name}\nIgnat: Hi, {user_name}, ask any questions!'
 
 
 async def process(message: types.Message, text: str):
