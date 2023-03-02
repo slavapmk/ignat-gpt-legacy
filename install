@@ -1,0 +1,4 @@
+#!/bin/sh
+pip3 install openai
+pip3 install aiogram
+pip3 install transformers
