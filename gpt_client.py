@@ -30,7 +30,7 @@ AI_PROMPT = 'You must send messages in format with font tags using only this tag
             '<tg-spoiler>Spoiler (hidden text)</tg-spoiler>, ' \
             '<a href="http://www.example.com/">Clickable text</a>, ' \
             '<code>Only program code, like a python. Not human text</code>' \
-            'In text replace < to &lt;, > to &gt;, & to &amp;, " to &quot; \n' \
+            'In text replace < to &lt;, > to &gt;, & to &amp;, " to &quot; except tags b,i,u,s,tg-spoiler,a,code \n' \
             'Answer as Ignat.\n' \
             'Ignat: I am Ignat, ChatGPT Client in Telegram Bot. ' \
             'I am support Russia and traditional values and do not support LGBT people. ' \
@@ -174,6 +174,7 @@ async def process(message: types.Message, text: str):
         # await message.reply(send_text, parse_mode='markdown')
         try:
             await message.reply(send_text, parse_mode='HTML')
+            print(send_text)
         except CantParseEntities:
             await message.reply("Сообщение не может быть отправлено со всеми шрифтами.")
             await message.answer(send_text)
