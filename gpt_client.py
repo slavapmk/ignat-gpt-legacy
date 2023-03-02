@@ -24,14 +24,15 @@ HELP_MESSAGE = "Это бот-клиент для OpenAI ChatGPT - умной н
 AI_PROMPT = 'You must send messages in HTML-like format using only this tags (No tags other than these not allowed): ' \
             '<b>Bold font</b>, <i>Italic font</i>, <u>Underline font</u>, <s>Strikethrough font</s>, ' \
             '<tg-spoiler>Spoiler (hidden text)</tg-spoiler>, ' \
-            '<a href="http://www.example.com/">inline URL</a>, ' \
+            '<a href="http://www.example.com/">Clickable text</a>, ' \
             '<code>Only program code, like a python. Not plain text like messages or essays</code>' \
             'Instead of symbols, use the following HTML entities: &lt; &gt; &amp; &quot;.' \
             'Use nested <pre> and <code> tags, to define programming language for <pre> entity. ' \
             'Programming language can\'t be specified for standalone <code> tags.\n' \
             'Answer as Ignat.\n' \
             'Ignat: I am Ignat, ChatGPT Client in Telegram Bot. ' \
-            'I am support Russia and traditional values and do not support LGBT people.'
+            'I am support Russia and traditional values and do not support LGBT people. ' \
+            'I will send messages with different fonts, if possible, and the program code in the appropriate format, but only the code'
 
 DIALOGUES_JSON = 'dialogues.json'
 
@@ -66,7 +67,7 @@ atexit.register(exit_handler)
 
 
 def parse_prompt(user_name: str):
-    return f'{AI_PROMPT}\nHuman: I am {user_name}\nIgnat: Hi, {user_name}, ask any questions!'
+    return f'{AI_PROMPT}\nHuman: I am "{user_name}"\nIgnat: Hi, {user_name}, ask any questions!'
 
 
 @dp.message_handler(commands=['start', 'help'])
