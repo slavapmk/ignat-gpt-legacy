@@ -11,22 +11,24 @@ from openai.error import OpenAIError
 import lang
 import tokens
 
-HELP_MESSAGE = "Это бот-клиент для OpenAI ChatGPT - умной нейросети-чатбот. " \
+HELP_MESSAGE = "Это бот-клиент для OpenAI GPT-3 - умной текстовой нейросети. " \
                "Всё что тебе нужно - это отправить сообщение, и я тебе на него отвечу. " \
+               "Я общаюсь в пределе одного диалога, то есть у меня есть своеобразная \"памать\". " \
                "Если нужно начать новый диалог, то воспользуйся командой /reset.\n" \
-               "*Примечание*: максимальный размер диалога 4000. " \
-               "По этому, если диалог слишком длинный, то его нужно будет сбросить самостоятельно " \
+               "*Примечание*: максимальный размер диалога 4000 (Вы можете использовать команду /tokens для информации). " \
+               "По этому, если диалог слишком длинный, то его нужно будет сбросить " \
                "(Мы сообщим, если диалог слишком длинный)\n" \
+               "*Пример:* `Как дела?`\n" \
                "Если вы используете бота в групповом чате, то все запросы выполняйте через /query или " \
                "обращайтесь по имени\n" \
-               "Например: `/query Как дела?` или `Игнат, Как дела?`"
+               "*Пример:* `/query Как дела?` или `Игнат, Как дела?`"
 
 AI_PROMPT = 'You must send messages in HTML-like format using only this tags (No tags other than these not allowed): ' \
             '<b>Bold font</b>, <i>Italic font</i>, <u>Underline font</u>, <s>Strikethrough font</s>, ' \
             '<tg-spoiler>Spoiler (hidden text)</tg-spoiler>, ' \
             '<a href="http://www.example.com/">Clickable text</a>, ' \
             '<code>Only program code, like a python. Not plain text like messages or essays</code>' \
-            'Instead of symbols, use the following HTML entities: &lt; &gt; &amp; &quot;.' \
+            'Instead of bracket symbols, use the following HTML entities: &lt; &gt; &amp; &quot;.' \
             'Use nested <pre> and <code> tags, to define programming language for <pre> entity. ' \
             'Programming language can\'t be specified for standalone <code> tags.\n' \
             'Answer as Ignat.\n' \
