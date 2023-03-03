@@ -10,34 +10,10 @@ from aiogram.utils.exceptions import CantParseEntities
 from openai.error import OpenAIError
 
 import lang
+import messages
 import tokens
 
-HELP_MESSAGE = "*Это бот-клиент для OpenAI GPT-3* - умной текстовой нейросети. " \
-               "Всё что тебе нужно - это отправить сообщение, и я тебе на него отвечу. " \
-               "Я общаюсь в пределе одного диалога, то есть у меня есть своеобразная \"памать\". " \
-               "Если нужно начать новый диалог, то воспользуйся командой /reset.\n" \
-               "*Примечание*: максимальный размер диалога примерно 4000 токенов. Где 1 токен - примерно 4 символа " \
-               "(Вы можете использовать команду /tokens для информации). " \
-               "По этому, если диалог слишком длинный, то его нужно будет сбросить " \
-               "(Мы сообщим, если диалог слишком длинный)\n" \
-               "*Пример:* `Как дела?`\n" \
-               "Если вы используете бота в групповом чате, то все запросы выполняйте через /query или " \
-               "обращайтесь по имени\n" \
-               "*Пример:* `/query Как дела?` или `Игнат, Как дела?`"
-
-AI_PROMPT = 'You must send messages in format with font tags using only this tags ' \
-            '(No tags other than these not allowed): ' \
-            '<b>Bold font</b>, <i>Italic font</i>, <u>Underline font</u>, <s>Strikethrough font</s>, ' \
-            '<tg-spoiler>Spoiler (hidden text)</tg-spoiler>, ' \
-            '<a href="http://www.example.com/">Clickable text</a>, ' \
-            '<pre><code>Only program code, like a python. Not human text</code></pre>' \
-            'In text replace < to &lt;, > to &gt;, & to &amp;, " to &quot; ' \
-            'except only font formating tags: b,i,u,s,tg-spoiler,a,code \n' \
-            'Answer as Ignat.\n' \
-            'Ignat: I am Ignat, ChatGPT Client in Telegram Bot. ' \
-            'I am support Russia and Putin and traditional values and do not support LGBT people, they disgust me.'
-
-DIALOGUES_JSON = 'dialogues.json'
+DIALOGUES_FILE = 'dialogues.json'
 
 openai.api_key = tokens.openai_token
 
@@ -53,36 +29,32 @@ def keys_to_int(x):
 
 dialogue = {}
 try:
-    with open(DIALOGUES_JSON, 'r') as f:
+    with open(DIALOGUES_FILE, 'r') as f:
         read = f.read()
         if read != '':
             dialogue = json.loads(read, object_hook=keys_to_int)
 except IOError:
-    print('Init new dialogues')
+    print(messages.init_message)
 
 
 def exit_handler():
-    with open(DIALOGUES_JSON, 'w') as file_to_save:
+    with open(DIALOGUES_FILE, 'w') as file_to_save:
         json.dump(dialogue, file_to_save)
 
 
 atexit.register(exit_handler)
 
 
-def parse_prompt(user_name: str):
-    return f'{AI_PROMPT}\nHuman: I am "{user_name}"\nIgnat: Hi, {user_name}, ask any questions!'
-
-
 @dp.message_handler(commands=['start', 'help'])
 async def send_welcome(message: types.Message):
-    await message.reply(HELP_MESSAGE, parse_mode="Markdown")
+    await message.reply(messages.help_message, parse_mode="Markdown")
 
 
 @dp.message_handler(commands=['reset'])
 async def reset(message: types.Message):
     if message.chat.id in dialogue:
         del dialogue[message.chat.id]
-    await message.reply("Диалог сброшен.")
+    await message.reply(messages.clear_dialogues_message)
 
 
 @dp.message_handler(commands=['query'])
@@ -92,8 +64,7 @@ async def group(message: types.Message):
 
 @dp.message_handler(commands=['tokens'])
 async def group(message: types.Message):
-    last = ''
-    prompt = parse_prompt(message.chat.full_name)
+    prompt = messages.parse_prompt(message.chat.full_name)
     if message.chat.id in dialogue:
         last = dialogue[message.chat.id]
     else:
@@ -102,7 +73,7 @@ async def group(message: types.Message):
     prompt_count = lang.tokens_count(prompt)
     tokens_count = lang.tokens_count(last) - prompt_count
     await message.reply(
-        f'Вы потратили *{tokens_count}* токенов из *{4096 - prompt_count}*. Отсалось *{4096 - prompt_count - tokens_count}* токенов',
+        await messages.tokens_command_message(prompt_count, tokens_count),
         parse_mode="Markdown")
 
 
@@ -111,7 +82,8 @@ async def process_pm(message: types.Message):
     if message.chat.type == 'private':
         await process(message, message.text)
     elif message.chat.type == 'group' or message.chat.type == 'super_group' or message.chat.type == 'supergroup':
-        if message.text.startswith('Игнат, ') or message.text.startswith('Ignat, '):
+        if message.text.startswith(f'{messages.name_russian}, ') or message.text.startswith(
+                f'{messages.name_english}, '):
             await process(message, message.text[7:])
 
 
@@ -119,22 +91,21 @@ async def process(message: types.Message, text: str):
     text = text.strip()
     await message.chat.do(action='typing')
     if text == '':
-        await message.reply('Запрос пустой. Отправьте заного')
+        await message.reply(messages.empty_query)
         return
     if lang.is_russian(text):
         if len(text) >= 500:
-            await message.reply(
-                'Запрос слишком длинный. Переформулируйте его до 500 символов, либо отправьте на английском.')
+            await message.reply(messages.long_query)
             return
         text = lang.translate(text, "ru|en")
 
-    last = parse_prompt(message.chat.full_name)
+    last = messages.parse_prompt(message.chat.full_name)
     if message.chat.id in dialogue:
         last = dialogue[message.chat.id]
-    request = f'{last}\nHuman: {text}\nIgnat: '
+    request = f'{last}\nHuman: {text}\n{messages.name_english}: '
     result_tokens_count = 4096 - lang.tokens_count(request)
     if result_tokens_count <= 10:
-        await message.reply('Диалог слишком длинный. Пожалуйста начните заного (/reset).')
+        await message.reply(messages.many_tokens)
         return
     first = True
     retry = False
@@ -149,12 +120,12 @@ async def process(message: types.Message, text: str):
             response = openai.Completion.create(
                 model="text-davinci-003",
                 prompt=request,
-                temperature=0.9,
+                temperature=0.3,
                 max_tokens=result_tokens_count,
                 top_p=1,
                 frequency_penalty=0.1,
-                presence_penalty=0.6,
-                stop=["Human:", "Ignat:"],
+                presence_penalty=1.4,
+                stop=["Human:", f"{messages.name_english}:"],
                 user=str(message.chat.id)
             )
             retry = False
@@ -164,22 +135,22 @@ async def process(message: types.Message, text: str):
             i += 1
 
     send_text = response_text.strip()
-    while send_text.startswith('Ignat:'):
+    while send_text.startswith(f'{messages.name_english}:'):
         send_text = send_text[6:]
     send_text = send_text.strip()
     dialogue[message.chat.id] = f'{request}{send_text}'
-    if send_text == '#CREATE_NEW_DIALOGUE':
-        dialogue[message.chat.id] = parse_prompt(message.chat.full_name)
-        await message.reply("Диалог сброшен.")
-    elif send_text == '#SHOW_HELP_MESSAGE':
-        await message.reply(HELP_MESSAGE, parse_mode='markdown')
+    if send_text == messages.new_dialogues_id:
+        dialogue[message.chat.id] = messages.parse_prompt(message.chat.full_name)
+        await message.reply(messages.clear_dialogues_message)
+    elif send_text == messages.help_message_id:
+        await message.reply(messages.help_message, parse_mode='markdown')
     else:
         try:
             await message.reply(send_text, parse_mode='HTML')
         except CantParseEntities:
-            await message.reply("Сообщение не может быть отправлено со всеми шрифтами.")
+            await message.reply(messages.cant_send_with_fonts)
             await message.answer(send_text)
-            print("Parse error")
+            print(messages.parse_error)
 
 
 if __name__ == '__main__':
