@@ -1,5 +1,4 @@
-tokens.py
-dialogues.json
+data/
 venv/
 .idea/
 __pycache__/

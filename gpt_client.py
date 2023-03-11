@@ -1,6 +1,7 @@
 import atexit
 import json
 import logging
+import os
 import time
 
 import openai
@@ -11,15 +12,30 @@ from openai.error import OpenAIError
 
 import lang
 import messages
-import tokens
 
-DIALOGUES_FILE = 'dialogues.json'
+DATA_FOLDER = 'data'
+DATA_FILE = f'{DATA_FOLDER}/data.json'
+TOKENS_FILE = f'{DATA_FOLDER}/tokens.json'
 
-openai.api_key = tokens.openai_token
+tokens = {'telegram': '', 'openai': ''}
+
+try:
+    with open(TOKENS_FILE, 'r') as rf:
+        read = rf.read()
+        if read != '':
+            tokens = json.loads(read)
+except IOError:
+    with open(TOKENS_FILE, 'w') as file:
+        json.dump(tokens, file, sort_keys=True, indent=4)
+    print("Insert tokens")
+    exit()
+if tokens['telegram'] == '' or tokens['openai'] == '':
+    print("Insert tokens")
+    exit()
 
 logging.basicConfig(level=logging.INFO)
-
-bot = Bot(token=tokens.telegram_token)
+bot = Bot(token=tokens['telegram'])
+openai.api_key = tokens['openai']
 dp = Dispatcher(bot)
 
 
@@ -27,19 +43,26 @@ def keys_to_int(x):
     return {int(k): v for k, v in x.items()}
 
 
-dialogue = {}
+os.makedirs(DATA_FOLDER, exist_ok=True)
+dialogues = {}
+usages = {}
+prompt_sizes = {}
 try:
-    with open(DIALOGUES_FILE, 'r') as f:
-        read = f.read()
+    with open(DATA_FILE, 'r') as rf:
+        read = rf.read()
         if read != '':
-            dialogue = json.loads(read, object_hook=keys_to_int)
+            data = json.loads(read)
+            dialogues = data['dialogues']
+            usages = data['usage']
+            prompt_sizes = data['prompt_sizes']
 except IOError:
-    print(messages.init_message)
+    print(messages.init_data)
 
 
 def exit_handler():
-    with open(DIALOGUES_FILE, 'w') as file_to_save:
-        json.dump(dialogue, file_to_save)
+    with open(DATA_FILE, 'w') as wf:
+        json.dump({'dialogues': dialogues, 'usage': usages, 'prompt_sizes': prompt_sizes},
+                  wf, sort_keys=True, indent=4)
 
 
 atexit.register(exit_handler)
