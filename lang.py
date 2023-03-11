@@ -2,7 +2,7 @@ import json
 import string
 
 import requests
-from transformers import GPT2TokenizerFast
+import tiktoken
 
 ru_alphabet_lowercase = 'абвгдеёжзийклмнопрстуфхцчшщъыьэюя'
 ru_alphabet_uppercase = ru_alphabet_lowercase.upper()
@@ -31,8 +31,7 @@ def is_russian(text: str):
 
 
 def tokens_count(text: str):
-    tokenizer = GPT2TokenizerFast.from_pretrained("gpt2")
-    return len(tokenizer(text)['input_ids'])
+    return len(tiktoken.encoding_for_model("gpt-3.5-turbo").encode(text))
 
 
 def translate(text: str, lang_pair: str):
