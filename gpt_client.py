@@ -70,33 +70,38 @@ atexit.register(exit_handler)
 
 @dp.message_handler(commands=['start', 'help'])
 async def send_welcome(message: types.Message):
-    await message.reply(messages.help_message, parse_mode="Markdown")
+    await message.reply(messages.help_message, parse_mode="Markdown", disable_web_page_preview=True)
 
 
 @dp.message_handler(commands=['reset'])
 async def reset(message: types.Message):
-    if message.chat.id in dialogue:
-        del dialogue[message.chat.id]
+    if str(message.chat.id) in dialogues:
+        del dialogues[str(message.chat.id)]
+    if str(message.chat.id) in usages:
+        del usages[str(message.chat.id)]
+    if str(message.chat.id) in prompt_sizes:
+        del prompt_sizes[str(message.chat.id)]
     await message.reply(messages.clear_dialogues_message)
 
 
 @dp.message_handler(commands=['query'])
 async def group(message: types.Message):
-    await process(message, message.text[7:])
+    await process(message, message.get_args())
 
 
 @dp.message_handler(commands=['tokens'])
 async def group(message: types.Message):
-    prompt = messages.parse_prompt(message.chat.full_name)
-    if message.chat.id in dialogue:
-        last = dialogue[message.chat.id]
+    tokens_count = 0
+    if str(message.chat.id) in usages:
+        tokens_count = usages[str(message.chat.id)]
+    if str(message.chat.id) in prompt_sizes:
+        prompt_size = prompt_sizes[str(message.chat.id)]
     else:
-        last = prompt
-
-    prompt_count = lang.tokens_count(prompt)
-    tokens_count = lang.tokens_count(last) - prompt_count
+        prompt = messages.ai_prompt + f"\nUser's name is \"{message.chat.full_name}\""
+        prompt_size = lang.tokens_count(prompt)
+        tokens_count = prompt_size
     await message.reply(
-        await messages.tokens_command_message(prompt_count, tokens_count),
+        await messages.tokens_command_message(tokens_count, prompt_size),
         parse_mode="Markdown")
 
 
@@ -122,14 +127,11 @@ async def process(message: types.Message, text: str):
             return
         text = lang.translate(text, "ru|en")
 
-    last = messages.parse_prompt(message.chat.full_name)
-    if message.chat.id in dialogue:
-        last = dialogue[message.chat.id]
-    request = f'{last}\nHuman: {text}\n{messages.name_english}: '
-    result_tokens_count = 4096 - lang.tokens_count(request)
-    if result_tokens_count <= 10:
-        await message.reply(messages.many_tokens)
-        return
+    if str(message.chat.id) not in dialogues:
+        prompt = messages.ai_prompt + f"\nUser's name is \"{message.chat.full_name}\""
+        prompt_sizes[str(message.chat.id)] = lang.tokens_count(prompt)
+        dialogues[str(message.chat.id)] = [{"role": "system", "content": prompt}]
+    dialogues[str(message.chat.id)].append({"role": "user", "content": text})
     first = True
     retry = False
     i = 1
@@ -140,40 +142,27 @@ async def process(message: types.Message, text: str):
         first = False
         await message.chat.do(action='typing')
         try:
-            response = openai.Completion.create(
-                model="text-davinci-003",
-                prompt=request,
-                temperature=0.3,
-                max_tokens=result_tokens_count,
-                top_p=1,
-                frequency_penalty=0.1,
-                presence_penalty=1.4,
-                stop=["Human:", f"{messages.name_english}:"],
-                user=str(message.chat.id)
+            response = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",
+                messages=dialogues[str(message.chat.id)]
             )
             retry = False
-            response_text = response['choices'][0]['text']
+            usages[str(message.chat.id)] = response['usage']['total_tokens']
+            response_text = response['choices'][0]['message']['content']
         except OpenAIError:
             retry = True
             i += 1
 
     send_text = response_text.strip()
-    while send_text.startswith(f'{messages.name_english}:'):
-        send_text = send_text[6:]
-    send_text = send_text.strip()
-    dialogue[message.chat.id] = f'{request}{send_text}'
-    if send_text == messages.new_dialogues_id:
-        dialogue[message.chat.id] = messages.parse_prompt(message.chat.full_name)
-        await message.reply(messages.clear_dialogues_message)
-    elif send_text == messages.help_message_id:
-        await message.reply(messages.help_message, parse_mode='markdown')
-    else:
-        try:
-            await message.reply(send_text, parse_mode='HTML')
-        except CantParseEntities:
-            await message.reply(messages.cant_send_with_fonts)
-            await message.answer(send_text)
-            print(messages.parse_error)
+    dialogues[str(message.chat.id)].append({"role": "assistant", "content": send_text})
+    try:
+        await message.reply(send_text, parse_mode='Markdown', allow_sending_without_reply=True,
+                            disable_web_page_preview=True)
+    except CantParseEntities:
+        await message.reply(messages.cant_send_with_fonts, allow_sending_without_reply=True,
+                            disable_web_page_preview=True)
+        await message.answer(send_text)
+        print(messages.parse_error)
 
 
 if __name__ == '__main__':
