@@ -17,6 +17,8 @@ DATA_FOLDER = 'data'
 DATA_FILE = f'{DATA_FOLDER}/data.json'
 TOKENS_FILE = f'{DATA_FOLDER}/tokens.json'
 
+os.makedirs(DATA_FOLDER, exist_ok=True)
+
 tokens = {'telegram': '', 'openai': ''}
 
 try:
@@ -43,7 +45,6 @@ def keys_to_int(x):
     return {int(k): v for k, v in x.items()}
 
 
-os.makedirs(DATA_FOLDER, exist_ok=True)
 dialogues = {}
 usages = {}
 prompt_sizes = {}
