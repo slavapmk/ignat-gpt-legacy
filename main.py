@@ -90,6 +90,11 @@ async def group(message: types.Message):
     await process(message, message.get_args())
 
 
+@dp.message_handler(commands=['nt'])
+async def group(message: types.Message):
+    await process(message, message.get_args(), False)
+
+
 @dp.message_handler(commands=['tokens'])
 async def group(message: types.Message):
     tokens_count = 0
@@ -116,13 +121,13 @@ async def process_pm(message: types.Message):
             await process(message, message.text[7:])
 
 
-async def process(message: types.Message, text: str):
+async def process(message: types.Message, text: str, auto_translate=True):
     text = text.strip()
     await message.chat.do(action='typing')
     if text == '':
         await message.reply(messages.empty_query)
         return
-    if lang.is_russian(text):
+    if lang.is_russian(text) and auto_translate:
         if len(text) >= 500:
             await message.reply(messages.long_query)
             return
