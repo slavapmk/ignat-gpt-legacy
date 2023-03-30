@@ -37,6 +37,8 @@ def parse_info_text(chat_id, prompt_size, tokens_count):
 
 async def parse_info_keyboard(message):
     chat_id = str(message.chat.id)
+    if chat_id not in manager.data:
+        manager.init_new_client(chat_id)
     prompt_size, tokens_count = manager.get_usage(chat_id, message.chat.full_name)
     keyboard = types.InlineKeyboardMarkup()
     button1 = types.InlineKeyboardButton(
