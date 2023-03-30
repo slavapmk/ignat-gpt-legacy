@@ -132,7 +132,13 @@ async def process(message: types.Message, text: str):
         return
 
     if manager.data[chat_id]['settings']['dan']:
-        text = messages.dan_prompt.replace("${prompt}", text)
+        ln = '\n'
+        text = messages.dan_prompt.replace(
+            "${prompt}",
+            f"{ln + 'Ответь на русском:' + ln if lang.is_russian(text) else ''}" +
+            text +
+            f"{ln + 'Пиши строго на русском языке' if lang.is_russian(text) else ''}"
+        )
     if 'dialogue' not in manager.data[chat_id]:
         prompt = messages.parse_prompt(message.chat.full_name)
         manager.data[chat_id]['dialogue'] = [{"role": "system", "content": prompt}]
