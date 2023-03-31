@@ -36,7 +36,7 @@ def keys_to_int(x):
     return {int(k): v for k, v in x.items()}
 
 
-# data = {}
+data = {}
 try:
     with open(DATA_FILE, 'r') as rf:
         read = rf.read()
@@ -77,6 +77,8 @@ def reset_dialogue(chat_id: str):
             del data[chat_id]['dialogue']
         if 'usage' in data[chat_id]:
             del data[chat_id]['usage']
+        if 'dan_count' in data[chat_id]:
+            del data[chat_id]['dan_count']
 
 
 def init_new_client(chat_id: str):

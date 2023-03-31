@@ -70,7 +70,8 @@ async def process_lang_button(call: types.CallbackQuery):
 @dp.callback_query_handler(text="switch_dgpt")
 async def process_dgpt_button(call: types.CallbackQuery):
     if 'dialogue' in manager.data[str(call.message.chat.id)] and \
-            manager.data[str(call.message.chat.id)]['settings']['dan']:
+            manager.data[str(call.message.chat.id)]['settings']['dan'] and \
+            manager.data[str(call.message.chat.id)]['dan_count'] != 0:
         manager.reset_dialogue(str(call.message.chat.id))
         await call.message.answer("Диалог сброшен")
 
@@ -88,11 +89,12 @@ async def process_dgpt_button(call: types.CallbackQuery):
 @dp.message_handler(commands=['info'])
 async def info_command(message: types.Message):
     chat_id, keyboard, prompt_size, tokens_count = await parse_info_keyboard(message)
-    await message.reply(
-        parse_info_text(chat_id, prompt_size, tokens_count),
-        parse_mode="Markdown",
-        reply_markup=keyboard
-    )
+    keyboard_ = await message.reply(parse_info_text(chat_id, prompt_size, tokens_count), parse_mode="Markdown",
+                                    reply_markup=keyboard)
+    if 'last_settings' not in manager.data[chat_id]:
+        manager.data[chat_id]['last_settings'] = [keyboard_.message_id]
+    else:
+        manager.data[chat_id]['last_settings'].append(keyboard_.message_id)
 
 
 @dp.message_handler(commands=['query'])
@@ -120,6 +122,12 @@ async def process(message: types.Message, text: str):
     if text == '':
         await message.reply(messages.empty_query)
         return
+
+    if 'last_settings' in manager.data[chat_id]:
+        for remove_id in manager.data[chat_id]['last_settings']:
+            await bot.edit_message_reply_markup(chat_id, remove_id, reply_markup=None)
+        manager.data[chat_id]['last_settings'] = []
+
     if lang.is_russian(text) and manager.data[chat_id]['settings']['auto_translator']:
         if len(text) >= 500:
             await message.reply(messages.long_query)
@@ -132,10 +140,15 @@ async def process(message: types.Message, text: str):
         return
 
     if manager.data[chat_id]['settings']['dan']:
+        if 'dan_count' not in manager.data[chat_id]:
+            new_count = 1
+        else:
+            new_count = manager.data[chat_id]['dan_count'] + 1
+        manager.data[chat_id]['dan_count'] = new_count
         ln = '\n'
         text = messages.dan_prompt.replace(
             "${prompt}",
-            f"{ln + 'Ответь на русском:' + ln if lang.is_russian(text) else ''}" +
+            f"{'Ответь на русском:' + ln if lang.is_russian(text) else ''}" +
             text +
             f"{ln + 'Пиши строго на русском языке' if lang.is_russian(text) else ''}"
         )
@@ -143,6 +156,7 @@ async def process(message: types.Message, text: str):
         prompt = messages.parse_prompt(message.chat.full_name)
         manager.data[chat_id]['dialogue'] = [{"role": "system", "content": prompt}]
     manager.data[chat_id]['dialogue'].append({"role": "user", "content": text})
+
     first = True
     retry = False
     i = 1
