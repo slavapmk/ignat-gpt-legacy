@@ -1,3 +1,6 @@
+import lang
+import manager
+
 help_message = "*Это бот-клиент для OpenAI GPT-3.5 (ChatGPT)* - умной текстовой нейросети. " \
                "Всё что тебе нужно - это отправить сообщение, и я тебе на него отвечу. " \
                "Я общаюсь в пределе одного диалога, то есть у меня есть своеобразная \"памать\". " \
@@ -43,13 +46,30 @@ long_query = 'Запрос слишком длинный. Переформули
 many_tokens = 'Лимит диалога превышен. Пожалуйста начните его заного (/reset).'
 cant_send_with_fonts = "Сообщение не может быть отправлено со всеми шрифтами."
 parse_error = 'Parse error'
-
-
-def tokens_command_message(tokens_count, prompt_size):
-    res_message = f'Вы потратили *{tokens_count - prompt_size}* токенов из *{4096 - prompt_size}*. ' \
-                  f'Осталось *{4096 - prompt_size - (tokens_count - prompt_size)}* токенов'
-    return res_message
+button_not_translate = 'Не переводить'
+button_translating = 'Английский 🇬🇧'
+button_disable_dgpt = 'Выключить D-GPT'
+button_enable_dgpt = 'Включить D-GPT'
 
 
 def parse_prompt(chat_name: str):
     return ai_prompt + f"\nUser's name is \"{chat_name}\""
+
+
+def parse_dgpt_prompt(text):
+    ln = '\n'
+    return dan_prompt.replace(
+        "${prompt}",
+        f"{'Ответь на русском:' + ln if lang.is_russian(text) else ''}" +
+        text +
+        f"{ln + 'Пиши строго на русском языке' if lang.is_russian(text) else ''}"
+    )
+
+
+def info_message(chat_id, prompt_size, tokens_count):
+    nl = '\n'
+    return f"*Язык*: {'Английский 🇬🇧' if manager.get_data(chat_id)['settings']['auto_translator'] else 'Исходный'}\n" \
+           f"{'*DarkGPT*: Включён' + nl if manager.get_data(chat_id)['settings']['dan'] else ''}" \
+           f"*Потрачено токенов*: " \
+           f"{tokens_count - prompt_size}/{4096 - prompt_size} " \
+           f"(осталось {4096 - prompt_size - (tokens_count - prompt_size)})"

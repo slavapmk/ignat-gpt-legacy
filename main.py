@@ -29,34 +29,32 @@ async def reset(message: types.Message):
 
 
 def parse_info_text(chat_id, prompt_size, tokens_count):
-    nl = '\n'
-    return f"*Язык*: {'Английский 🇬🇧' if manager.data[chat_id]['settings']['auto_translator'] else 'Исходный'}\n" \
-           f"{'*DarkGPT*: Включён' + nl if manager.data[chat_id]['settings']['dan'] else ''}" \
-           f"*Потрачено токенов*: {tokens_count - prompt_size}/{4096 - prompt_size} (осталось {4096 - prompt_size - (tokens_count - prompt_size)})"
+    return messages.info_message(chat_id, prompt_size, tokens_count)
 
 
 async def parse_info_keyboard(message):
     chat_id = str(message.chat.id)
-    if chat_id not in manager.data:
-        manager.init_new_client(chat_id)
     prompt_size, tokens_count = manager.get_usage(chat_id, message.chat.full_name)
     keyboard = types.InlineKeyboardMarkup()
-    button1 = types.InlineKeyboardButton(
-        text=f"{'Не переводить' if manager.data[chat_id]['settings']['auto_translator'] else 'Английский 🇬🇧'}",
-        callback_data="switch_translator"
+    keyboard.add(
+        types.InlineKeyboardButton(
+            text=messages.button_not_translate if manager.get_data(chat_id)['settings']['auto_translator']
+            else messages.button_translating,
+            callback_data="switch_translator"
+        ),
+        types.InlineKeyboardButton(
+            text=messages.button_disable_dgpt if manager.get_data(chat_id)['settings']['dan']
+            else messages.button_enable_dgpt,
+            callback_data="switch_dgpt"
+        )
     )
-    button2 = types.InlineKeyboardButton(
-        text=f"{'Выключить D-GPT' if manager.data[chat_id]['settings']['dan'] else 'Включить D-GPT'}",
-        callback_data="switch_dgpt"
-    )
-    keyboard.add(button1, button2)
     return chat_id, keyboard, prompt_size, tokens_count
 
 
 @dp.callback_query_handler(text="switch_translator")
 async def process_lang_button(call: types.CallbackQuery):
-    manager.data[str(call.message.chat.id)]['settings']['auto_translator'] = not \
-        manager.data[str(call.message.chat.id)]['settings']['auto_translator']
+    manager.get_data(str(call.message.chat.id))['settings']['auto_translator'] = not \
+        manager.get_data(str(call.message.chat.id))['settings']['auto_translator']
 
     chat_id, keyboard, prompt_size, tokens_count = await parse_info_keyboard(call.message)
 
@@ -69,14 +67,13 @@ async def process_lang_button(call: types.CallbackQuery):
 
 @dp.callback_query_handler(text="switch_dgpt")
 async def process_dgpt_button(call: types.CallbackQuery):
-    if 'dialogue' in manager.data[str(call.message.chat.id)] and \
-            manager.data[str(call.message.chat.id)]['settings']['dan'] and \
-            manager.data[str(call.message.chat.id)]['dan_count'] != 0:
+    if manager.get_data(str(call.message.chat.id))['settings']['dan'] and \
+            manager.get_data(str(call.message.chat.id))['dan_count'] != 0:
         manager.reset_dialogue(str(call.message.chat.id))
-        await call.message.answer("Диалог сброшен")
+        await call.message.answer(messages.clear_dialogues_message)
 
-    manager.data[str(call.message.chat.id)]['settings']['dan'] = not \
-        manager.data[str(call.message.chat.id)]['settings']['dan']
+    manager.get_data(str(call.message.chat.id))['settings']['dan'] = not \
+        manager.get_data(str(call.message.chat.id))['settings']['dan']
 
     chat_id, keyboard, prompt_size, tokens_count = await parse_info_keyboard(call.message)
     await call.message.edit_text(
@@ -89,12 +86,9 @@ async def process_dgpt_button(call: types.CallbackQuery):
 @dp.message_handler(commands=['info'])
 async def info_command(message: types.Message):
     chat_id, keyboard, prompt_size, tokens_count = await parse_info_keyboard(message)
-    keyboard_ = await message.reply(parse_info_text(chat_id, prompt_size, tokens_count), parse_mode="Markdown",
-                                    reply_markup=keyboard)
-    if 'last_settings' not in manager.data[chat_id]:
-        manager.data[chat_id]['last_settings'] = [keyboard_.message_id]
-    else:
-        manager.data[chat_id]['last_settings'].append(keyboard_.message_id)
+    manager.get_data(chat_id)['last_settings'].append(
+        (await message.reply(parse_info_text(chat_id, prompt_size, tokens_count), parse_mode="Markdown",
+                             reply_markup=keyboard)).message_id)
 
 
 @dp.message_handler(commands=['query'])
@@ -114,21 +108,17 @@ async def process_pm(message: types.Message):
 
 async def process(message: types.Message, text: str):
     chat_id = str(message.chat.id)
-    if chat_id not in manager.data:
-        manager.init_new_client(chat_id)
-
     text = text.strip()
     await message.chat.do(action='typing')
     if text == '':
         await message.reply(messages.empty_query)
         return
 
-    if 'last_settings' in manager.data[chat_id]:
-        for remove_id in manager.data[chat_id]['last_settings']:
-            await bot.edit_message_reply_markup(chat_id, remove_id, reply_markup=None)
-        manager.data[chat_id]['last_settings'] = []
+    for remove_id in manager.get_data(chat_id)['last_settings']:
+        await bot.edit_message_reply_markup(chat_id, remove_id, reply_markup=None)
+    manager.get_data(chat_id)['last_settings'] = []
 
-    if lang.is_russian(text) and manager.data[chat_id]['settings']['auto_translator']:
+    if lang.is_russian(text) and manager.get_data(chat_id)['settings']['auto_translator']:
         if len(text) >= 500:
             await message.reply(messages.long_query)
             return
@@ -139,23 +129,13 @@ async def process(message: types.Message, text: str):
         await message.reply(messages.many_tokens)
         return
 
-    if manager.data[chat_id]['settings']['dan']:
-        if 'dan_count' not in manager.data[chat_id]:
-            new_count = 1
-        else:
-            new_count = manager.data[chat_id]['dan_count'] + 1
-        manager.data[chat_id]['dan_count'] = new_count
-        ln = '\n'
-        text = messages.dan_prompt.replace(
-            "${prompt}",
-            f"{'Ответь на русском:' + ln if lang.is_russian(text) else ''}" +
-            text +
-            f"{ln + 'Пиши строго на русском языке' if lang.is_russian(text) else ''}"
-        )
-    if 'dialogue' not in manager.data[chat_id]:
+    if manager.get_data(chat_id)['settings']['dan']:
+        manager.get_data(chat_id)['dan_count'] += 1
+        text = messages.parse_dgpt_prompt(text)
+    if len(manager.get_data(chat_id)['dialogue']) == 0:
         prompt = messages.parse_prompt(message.chat.full_name)
-        manager.data[chat_id]['dialogue'] = [{"role": "system", "content": prompt}]
-    manager.data[chat_id]['dialogue'].append({"role": "user", "content": text})
+        manager.get_data(chat_id)['dialogue'] = [{"role": "system", "content": prompt}]
+    manager.get_data(chat_id)['dialogue'].append({"role": "user", "content": text})
 
     first = True
     retry = False
@@ -169,18 +149,17 @@ async def process(message: types.Message, text: str):
         try:
             response = openai.ChatCompletion.create(
                 model="gpt-3.5-turbo",
-                messages=manager.data[chat_id]['dialogue']
+                messages=manager.get_data(chat_id)['dialogue']
             )
             retry = False
-            manager.data[chat_id]['usage'] = response['usage']['total_tokens']
+            manager.get_data(chat_id)['usage'] = response['usage']['total_tokens']
             response_text = response['choices'][0]['message']['content']
-        # except
         except OpenAIError:
             retry = True
             i += 1
 
     send_text = response_text.strip()
-    manager.data[chat_id]['dialogue'].append({"role": "assistant", "content": send_text})
+    manager.get_data(chat_id)['dialogue'].append({"role": "assistant", "content": send_text})
     try:
         await message.reply(send_text, parse_mode='Markdown', allow_sending_without_reply=True,
                             disable_web_page_preview=True)
