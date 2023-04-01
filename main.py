@@ -19,11 +19,13 @@ dp = Dispatcher(bot)
 
 @dp.message_handler(commands=['start', 'help'])
 async def send_welcome(message: types.Message):
+    await hide_settings_buttons(str(message.chat.id))
     await message.reply(messages.help_message, parse_mode="Markdown", disable_web_page_preview=True)
 
 
 @dp.message_handler(commands=['reset'])
 async def reset(message: types.Message):
+    await hide_settings_buttons(str(message.chat.id))
     manager.reset_dialogue(str(message.chat.id))
     await message.reply(messages.clear_dialogues_message)
 
@@ -86,6 +88,7 @@ async def process_dgpt_button(call: types.CallbackQuery):
 @dp.message_handler(commands=['info'])
 async def info_command(message: types.Message):
     chat_id, keyboard, prompt_size, tokens_count = await parse_info_keyboard(message)
+    await hide_settings_buttons(chat_id)
     manager.get_data(chat_id)['last_settings'].append(
         (await message.reply(parse_info_text(chat_id, prompt_size, tokens_count), parse_mode="Markdown",
                              reply_markup=keyboard)).message_id)
@@ -108,15 +111,12 @@ async def process_pm(message: types.Message):
 
 async def process(message: types.Message, text: str):
     chat_id = str(message.chat.id)
+    await hide_settings_buttons(chat_id)
     text = text.strip()
     await message.chat.do(action='typing')
     if text == '':
         await message.reply(messages.empty_query)
         return
-
-    for remove_id in manager.get_data(chat_id)['last_settings']:
-        await bot.edit_message_reply_markup(chat_id, remove_id, reply_markup=None)
-    manager.get_data(chat_id)['last_settings'] = []
 
     if lang.is_russian(text) and manager.get_data(chat_id)['settings']['auto_translator']:
         if len(text) >= 500:
@@ -168,6 +168,12 @@ async def process(message: types.Message, text: str):
                             disable_web_page_preview=True)
         await message.answer(send_text)
         print(messages.parse_error)
+
+
+async def hide_settings_buttons(chat_id):
+    for remove_id in manager.get_data(chat_id)['last_settings']:
+        await bot.edit_message_reply_markup(chat_id, remove_id, reply_markup=None)
+    manager.get_data(chat_id)['last_settings'] = []
 
 
 if __name__ == '__main__':
