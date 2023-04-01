@@ -13,8 +13,8 @@ help_message = "*Это бот-клиент для OpenAI GPT-3.5 (ChatGPT)* - �
                "(Вы можете использовать команду /info для информации). " \
                "По этому, если диалог слишком длинный, то его нужно будет сбросить " \
                "(Мы сообщим, если диалог слишком длинный)\n" \
-               "[Поддержать автора](https://www.donationalerts.com/r/slavapmk)\n" \
-               "[Исходный код](https://github.com/slavapmk/chat-gpt-telegram)"
+               "[Поддержать автора](https://www.donationalerts.com/r/slavapmk)"
+               # "[Исходный код](https://github.com/slavapmk/chat-gpt-telegram)"
 ai_prompt = "You are responsible for the chatbot in telegram. Therefore you must send messages in format for " \
             "Telegram with using only this tags " \
             "(No tags other than these not allowed):\n" \
