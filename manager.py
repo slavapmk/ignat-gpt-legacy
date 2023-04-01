@@ -42,28 +42,32 @@ def keys_to_int(x):
     return {int(k): v for k, v in x.items()}
 
 
-data1 = {}
+data = {}
 try:
     with open(DATA_FILE, 'r') as rf:
         read = rf.read()
         if read != '':
-            data1 = json.loads(read)
+            data = json.loads(read)
 except IOError:
     print(messages.init_data)
 
 
 def exit_handler():
     with open(DATA_FILE, 'w') as wf:
-        json.dump(data1, wf, sort_keys=True, indent=2)
+        json.dump(data, wf, sort_keys=True, indent=2)
 
 
 atexit.register(exit_handler)
 
 
 def get_data(chat_id: str):
-    if chat_id not in data1:
-        data1[chat_id] = DEFAULT_CHAT.copy()
-    return data1[chat_id]
+    default = DEFAULT_CHAT.copy()
+    if chat_id not in data:
+        data[chat_id] = default
+    for key in default:
+        if key not in data[chat_id]:
+            data[chat_id][key] = default[key]
+    return data[chat_id]
 
 
 def get_usage(chat_id, chat_name):
