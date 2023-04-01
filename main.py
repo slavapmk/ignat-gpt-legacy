@@ -45,7 +45,7 @@ async def parse_info_keyboard(message):
             callback_data="switch_translator"
         ),
         types.InlineKeyboardButton(
-            text=messages.button_disable_dgpt if manager.get_data(chat_id)['settings']['dan']
+            text=messages.button_disable_dgpt if manager.get_data(chat_id)['settings']['dgpt']
             else messages.button_enable_dgpt,
             callback_data="switch_dgpt"
         )
@@ -69,13 +69,13 @@ async def process_lang_button(call: types.CallbackQuery):
 
 @dp.callback_query_handler(text="switch_dgpt")
 async def process_dgpt_button(call: types.CallbackQuery):
-    if manager.get_data(str(call.message.chat.id))['settings']['dan'] and \
+    if manager.get_data(str(call.message.chat.id))['settings']['dgpt'] and \
             manager.get_data(str(call.message.chat.id))['dan_count'] != 0:
         manager.reset_dialogue(str(call.message.chat.id))
         await call.message.answer(messages.clear_dialogues_message)
 
-    manager.get_data(str(call.message.chat.id))['settings']['dan'] = not \
-        manager.get_data(str(call.message.chat.id))['settings']['dan']
+    manager.get_data(str(call.message.chat.id))['settings']['dgpt'] = not \
+        manager.get_data(str(call.message.chat.id))['settings']['dgpt']
 
     chat_id, keyboard, prompt_size, tokens_count = await parse_info_keyboard(call.message)
     await call.message.edit_text(
@@ -129,7 +129,7 @@ async def process(message: types.Message, text: str):
         await message.reply(messages.many_tokens)
         return
 
-    if manager.get_data(chat_id)['settings']['dan']:
+    if manager.get_data(chat_id)['settings']['dgpt']:
         manager.get_data(chat_id)['dan_count'] += 1
         text = messages.parse_dgpt_prompt(text)
     if len(manager.get_data(chat_id)['dialogue']) == 0:
