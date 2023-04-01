@@ -57,9 +57,10 @@ button_enable_dgpt = 'Включить D-GPT'
 
 info_lang = '*Язык*: '
 info_status_translating = 'Английский 🇬🇧'
-info_status_not_translating = 'Исходный'
-info_status_enabled_dgpt = '\n*DarkGPT*: Включён'
-info_status_disabled_dgpt = ''
+info_status_not_translating = 'Исходный (медленнее)'
+info_dgpt = '\n*DarkGPT*: '
+info_status_enabled_dgpt = 'Включён'
+info_status_disabled_dgpt = 'Выключён'
 info_tokens_count = '\n*Потрачено токенов*: '
 
 
@@ -78,6 +79,7 @@ def info_message(chat_id, prompt_size, tokens_count):
             info_lang + \
             (info_status_translating if manager.get_data(chat_id)['settings'][
                 'auto_translator'] else info_status_not_translating) + \
+            info_dgpt + \
             (info_status_enabled_dgpt if manager.get_data(chat_id)['settings']['dgpt']
              else info_status_disabled_dgpt) + \
             info_tokens_count + \
