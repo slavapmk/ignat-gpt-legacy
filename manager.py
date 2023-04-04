@@ -9,14 +9,15 @@ DATA_FOLDER = 'data'
 DATA_FILE = f'{DATA_FOLDER}/data.json'
 TOKENS_FILE = f'{DATA_FOLDER}/tokens.json'
 DEFAULT_CHAT = {
-    "dialogue": [],
-    "last_settings": [],
-    "settings": {
+    'name': "",
+    'dialogue': [],
+    'last_settings': [],
+    'settings': {
         'auto_translator': True,
         'dgpt': False
     },
-    "usage": -1,
-    "dan_count": 0
+    'usage': -1,
+    'dan_count': 0
 }
 
 os.makedirs(DATA_FOLDER, exist_ok=True)
