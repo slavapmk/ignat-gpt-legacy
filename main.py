@@ -36,7 +36,7 @@ def parse_info_text(chat_id, prompt_size, tokens_count):
 
 async def parse_info_keyboard(message):
     chat_id = str(message.chat.id)
-    prompt_size, tokens_count = manager.get_usage(chat_id, message.chat.full_name)
+    prompt_size, tokens_count = manager.get_usage(chat_id, message.chat.full_name, message.chat.type != 'private')
     keyboard = types.InlineKeyboardMarkup()
     keyboard.add(
         types.InlineKeyboardButton(
@@ -124,7 +124,7 @@ async def process(message: types.Message, text: str):
             return
         text = lang.translate(text, "ru|en")
 
-    prompt_size, tokens_count = manager.get_usage(chat_id, message.chat.full_name)
+    prompt_size, tokens_count = manager.get_usage(chat_id, message.chat.full_name, message.chat.type != 'private')
     if 4096 - prompt_size - tokens_count + prompt_size < 250:
         await message.reply(messages.many_tokens)
         return
@@ -133,7 +133,7 @@ async def process(message: types.Message, text: str):
         manager.get_data(chat_id)['dan_count'] += 1
         text = messages.parse_dgpt_prompt(text)
     if len(manager.get_data(chat_id)['dialogue']) == 0:
-        prompt = messages.parse_prompt(message.chat.full_name)
+        prompt = messages.parse_prompt(message.chat.full_name, message.chat.type != 'private')
         manager.get_data(chat_id)['dialogue'] = [{"role": "system", "content": prompt}]
     manager.get_data(chat_id)['dialogue'].append({"role": "user", "content": text})
 

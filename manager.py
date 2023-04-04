@@ -70,8 +70,8 @@ def get_data(chat_id: str):
     return data[chat_id]
 
 
-def get_usage(chat_id, chat_name):
-    prompt_size = lang.tokens_count(messages.parse_prompt(chat_name))
+def get_usage(chat_id, chat_name, is_group):
+    prompt_size = lang.tokens_count(messages.parse_prompt(chat_name, is_group))
     tokens_count = get_data(chat_id)['usage']
     if tokens_count == -1:
         tokens_count = prompt_size
