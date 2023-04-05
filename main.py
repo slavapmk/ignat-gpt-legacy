@@ -1,11 +1,12 @@
+import asyncio
+import json
 import logging
-import time
+from asyncio import CancelledError
 
-import openai
+import aiohttp
 from aiogram import Bot, Dispatcher, types
 from aiogram.utils import executor
 from aiogram.utils.exceptions import CantParseEntities
-from openai.error import OpenAIError
 
 import lang
 import manager
@@ -13,7 +14,6 @@ import messages
 
 logging.basicConfig(level=logging.INFO)
 bot = Bot(token=manager.tokens['telegram'])
-openai.api_key = manager.tokens['openai']
 dp = Dispatcher(bot)
 
 
@@ -113,7 +113,8 @@ async def process(message: types.Message, text: str):
     chat_id = str(message.chat.id)
     await hide_settings_buttons(chat_id)
     text = text.strip()
-    await message.chat.do(action='typing')
+    if manager.get_data(chat_id)['name'] == '':
+        manager.get_data(chat_id)['name'] = message.chat.full_name
     if text == '':
         await message.reply(messages.empty_query)
         return
@@ -137,27 +138,12 @@ async def process(message: types.Message, text: str):
         manager.get_data(chat_id)['dialogue'] = [{"role": "system", "content": prompt}]
     manager.get_data(chat_id)['dialogue'].append({"role": "user", "content": text})
 
-    first = True
-    retry = False
-    i = 1
-    response_text = ''
-    while first or retry:
-        if not first:
-            time.sleep(3)
-        first = False
-        await message.chat.do(action='typing')
-        try:
-            response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=manager.get_data(chat_id)['dialogue']
-            )
-            retry = False
-            manager.get_data(chat_id)['usage'] = response['usage']['total_tokens']
-            response_text = response['choices'][0]['message']['content']
-        except OpenAIError:
-            retry = True
-            i += 1
+    task1 = asyncio.get_event_loop().create_task(process_typing_action(message))
+    task2 = asyncio.get_event_loop().create_task(process_openai_request(manager.get_data(chat_id)['dialogue']))
+    response_text, usage = await task2
+    task1.cancel()
 
+    manager.get_data(chat_id)['usage'] = usage
     send_text = response_text.strip()
     manager.get_data(chat_id)['dialogue'].append({"role": "assistant", "content": send_text})
     try:
@@ -168,6 +154,38 @@ async def process(message: types.Message, text: str):
                             disable_web_page_preview=True)
         await message.answer(send_text)
         print(messages.parse_error)
+
+
+async def process_typing_action(message: types.Message):
+    while True:
+        try:
+            await message.chat.do(action='typing')
+            await asyncio.sleep(2)
+        except CancelledError:
+            break
+
+
+async def process_openai_request(dialogue):
+    first = True
+    retry = False
+    response = {}
+    while first or retry:
+        if not first:
+            await asyncio.sleep(3)
+        first = False
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                    url='https://api.openai.com/v1/chat/completions',
+                    headers={'Content-Type': 'application/json', 'Authorization': f'Bearer {manager.tokens["openai"]}'},
+                    data=(json.dumps({'model': 'gpt-3.5-turbo', 'messages': dialogue}))
+            ) as resp:
+                if resp.status == 200:
+                    response = await resp.json()
+                    retry = False
+                else:
+                    print(resp.status)
+                    retry = True
+    return response['choices'][0]['message']['content'], response['usage']['total_tokens']
 
 
 async def hide_settings_buttons(chat_id):
