@@ -50,8 +50,8 @@ parse_error = 'Parse error'
 
 button_translating = 'Английский 🇬🇧'
 button_not_translate = 'Не переводить'
-button_disable_dgpt = 'Выключить D-GPT'
-button_enable_dgpt = 'Включить D-GPT'
+button_disable_dgpt = 'Выключить DarkGPT'
+button_enable_dgpt = 'Включить DarkGPT'
 
 info_lang = '*Язык*: '
 info_status_translating = 'Английский 🇬🇧'
