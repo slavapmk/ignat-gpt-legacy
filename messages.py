@@ -59,7 +59,7 @@ info_status_not_translating = 'Исходный (медленнее)'
 info_dgpt = '\n*DarkGPT*: '
 info_status_enabled_dgpt = 'Включён'
 info_status_disabled_dgpt = 'Выключён'
-info_tokens_count = '\n*Потрачено токенов*: '
+info_tokens_count = '\n*Размер диалога*: '
 
 
 def parse_prompt(chat_name: str, is_group: bool):
@@ -88,5 +88,5 @@ def info_message(chat_id, prompt_size, tokens_count):
 
 
 def tokens_info(prompt_size, tokens_count):
-    return f"{tokens_count - prompt_size}/{4096 - prompt_size} " + \
+    return f"{tokens_count - prompt_size} из {4096 - prompt_size} токенов " + \
         f"(осталось {4096 - prompt_size - (tokens_count - prompt_size)})"
