@@ -115,6 +115,8 @@ async def process(message: types.Message, text: str):
     text = text.strip()
     if manager.get_data(chat_id)['name'] == '':
         manager.get_data(chat_id)['name'] = message.chat.full_name
+    if manager.get_data(chat_id)['nick'] == '':
+        manager.get_data(chat_id)['nick'] = message.chat.username
     if text == '':
         await message.reply(messages.empty_query)
         return
