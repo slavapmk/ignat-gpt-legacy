@@ -99,6 +99,15 @@ async def process_group(message: types.Message):
     await process(message, message.get_args())
 
 
+@dp.message_handler(commands=['doo'])
+async def process_group(message: types.Message):
+    for key in manager.data:
+        await bot.send_message(key, "*Добрый день!*\n"
+                                    "У этого бота появился свой телеграм-канал, где будет публиковаться "
+                                    "информация об обновлениях и анонсах и будут проводится голосования об новых функциях.\n"
+                                    "Если интересно - можете смело [перейти в канал](https://t.me/ignatgpt)", parse_mode='markdown')
+
+
 @dp.message_handler()
 async def process_pm(message: types.Message):
     if message.chat.type == 'private':
