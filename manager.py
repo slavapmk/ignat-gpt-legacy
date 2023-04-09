@@ -1,3 +1,4 @@
+import asyncio
 import atexit
 import json
 import os
@@ -53,12 +54,20 @@ except IOError:
     print(messages.init_data)
 
 
-def exit_handler():
+def save_data():
+    print('Saving data')
     with open(DATA_FILE, 'w') as wf:
         json.dump(data, wf, sort_keys=True, indent=2)
 
 
-atexit.register(exit_handler)
+async def auto_save():
+    await asyncio.sleep(1200)
+    save_data()
+    asyncio.get_event_loop().create_task(auto_save())
+
+
+asyncio.get_event_loop().create_task(auto_save())
+atexit.register(save_data)
 
 
 def fill_default(default: dict, to_fill: dict):
