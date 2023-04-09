@@ -61,13 +61,31 @@ def exit_handler():
 atexit.register(exit_handler)
 
 
+def fill_default(default: dict, to_fill: dict):
+    for key in default:
+        if key not in to_fill:
+            to_fill[key] = default[key]
+        elif isinstance(default[key], dict):
+            fill_default(default[key], to_fill[key])
+
+
+def clear_if_not_exist(default: dict, to_clear: dict):
+    clear_keys = []
+    for key in to_clear:
+        if key not in default:
+            clear_keys.append(key)
+        elif isinstance(to_clear[key], dict):
+            clear_if_not_exist(default[key], to_clear[key])
+    for key in clear_keys:
+        del to_clear[key]
+
+
 def get_data(chat_id: str):
     default = DEFAULT_CHAT.copy()
     if chat_id not in data:
         data[chat_id] = default
-    for key in default:
-        if key not in data[chat_id]:
-            data[chat_id][key] = default[key]
+    clear_if_not_exist(default, data[chat_id])
+    fill_default(default, data[chat_id])
     return data[chat_id]
 
 
