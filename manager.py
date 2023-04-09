@@ -15,7 +15,7 @@ DEFAULT_CHAT = {
     'last_settings': [],
     'settings': {
         'auto_translator': True,
-        'dgpt': False
+        'darkgpt': False
     },
     'usage': -1,
     'dan_count': 0
