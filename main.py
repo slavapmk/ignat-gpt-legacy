@@ -182,7 +182,7 @@ async def process_openai_request(dialogue):
     response = {}
     while first or retry:
         if not first:
-            await asyncio.sleep(3)
+            await asyncio.sleep(21)
         first = False
         async with aiohttp.ClientSession() as session:
             async with session.post(
