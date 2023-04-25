@@ -109,6 +109,9 @@ async def process_pm(message: types.Message):
             await process(message, message.text[7:])
 
 
+free = True
+
+
 async def process(message: types.Message, text: str):
     chat_id = str(message.chat.id)
     await hide_settings_buttons(chat_id)
@@ -132,6 +135,12 @@ async def process(message: types.Message, text: str):
         await message.reply(messages.many_tokens)
         return
 
+    task1 = asyncio.get_event_loop().create_task(process_typing_action(message))
+    global free
+    while not free:
+        await asyncio.sleep(1)
+    free = False
+
     if manager.get_data(chat_id)['settings']['darkgpt']:
         manager.get_data(chat_id)['dan_count'] += 1
         text = messages.parse_darkgpt_prompt(text)
@@ -140,7 +149,6 @@ async def process(message: types.Message, text: str):
         manager.get_data(chat_id)['dialogue'] = [{"role": "system", "content": prompt}]
     manager.get_data(chat_id)['dialogue'].append({"role": "user", "content": text})
 
-    task1 = asyncio.get_event_loop().create_task(process_typing_action(message))
     task2 = asyncio.get_event_loop().create_task(process_openai_request(manager.get_data(chat_id)['dialogue']))
     response_text, usage = await task2
     task1.cancel()
@@ -156,6 +164,7 @@ async def process(message: types.Message, text: str):
                             disable_web_page_preview=True)
         await message.answer(send_text)
         print(messages.parse_error)
+    free = True
 
 
 async def process_typing_action(message: types.Message):
