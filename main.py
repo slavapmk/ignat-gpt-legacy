@@ -185,17 +185,19 @@ async def process_openai_request(dialogue):
             await asyncio.sleep(21)
         first = False
         async with aiohttp.ClientSession() as session:
+            headers = {'Content-Type': 'application/json', 'Authorization': f'Bearer {manager.tokens["openai"]}'}
+            data = (json.dumps({'model': 'gpt-3.5-turbo', 'messages': dialogue}))
             async with session.post(
                     url='https://api.openai.com/v1/chat/completions',
-                    headers={'Content-Type': 'application/json', 'Authorization': f'Bearer {manager.tokens["openai"]}'},
-                    data=(json.dumps({'model': 'gpt-3.5-turbo', 'messages': dialogue})),
+                    headers=headers,
+                    data=data,
                     timeout=600000
             ) as resp:
                 if resp.status == 200:
                     response = await resp.json()
                     retry = False
                 else:
-                    print(resp.status)
+                    print(resp.status, json.dumps({"headers": headers, "data": data, "response": resp.content}))
                     retry = True
     return response['choices'][0]['message']['content'], response['usage']['total_tokens']
 
