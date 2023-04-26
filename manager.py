@@ -9,6 +9,7 @@ import messages
 DATA_FOLDER = 'data'
 DATA_FILE = f'{DATA_FOLDER}/data.json'
 TOKENS_FILE = f'{DATA_FOLDER}/tokens.json'
+LOG_FILE = f'{DATA_FOLDER}/errors.json'
 DEFAULT_CHAT = {
     "nick": "",
     'name': "",
@@ -40,11 +41,6 @@ if tokens['telegram'] == '' or tokens['openai'] == '':
     print("Insert tokens")
     exit()
 
-
-def keys_to_int(x):
-    return {int(k): v for k, v in x.items()}
-
-
 data = {}
 try:
     with open(DATA_FILE, 'r') as rf:
@@ -54,11 +50,22 @@ try:
 except IOError:
     print(messages.init_data)
 
+log = {}
+try:
+    with open(LOG_FILE, 'r') as rf:
+        read = rf.read()
+        if read != '':
+            log = json.loads(read)
+except IOError:
+    pass
+
 
 def save_data():
     print('Saving data')
     with open(DATA_FILE, 'w') as wf:
         json.dump(data, wf, sort_keys=True, indent=2)
+    with open(LOG_FILE, 'w') as wf:
+        json.dump(log, wf, sort_keys=True, indent=2)
 
 
 async def auto_save():

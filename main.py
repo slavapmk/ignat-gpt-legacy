@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import datetime
 from asyncio import CancelledError
 
 import aiohttp
@@ -193,18 +194,21 @@ async def process_openai_request(dialogue):
                     data=data,
                     timeout=600000
             ) as resp:
+                response = await resp.json()
                 if resp.status == 429:
                     retry = True
                 else:
                     retry = False
-                    if resp.status == 200:
-                        response = await resp.json()
-                    elif resp.status == 400 and (await resp.json())['code'] == 'context_length_exceeded':
+                    if resp.status == 400 and (await resp.json())['code'] == 'context_length_exceeded':
                         return messages.many_tokens
                     else:
-                        print(resp.status, json.dumps(
-                            {"headers": headers, "data": data, "response": await resp.text()}
-                        ))
+                        manager.log[str(datetime.datetime.now())] = {
+                            "headers": headers,
+                            "data": data,
+                            "response": resp.json()
+                        }
+                        print('Handler error')
+                        return f"Catched unexpected {resp.status} result code. Please /reset and re-try request"
     return response['choices'][0]['message']['content'], response['usage']['total_tokens']
 
 
