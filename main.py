@@ -197,7 +197,9 @@ async def process_openai_request(dialogue):
                     response = await resp.json()
                     retry = False
                 else:
-                    print(resp.status, json.dumps({"headers": headers, "data": data, "response": resp.text()}))
+                    print(resp.status, json.dumps(
+                        {"headers": headers, "data": data, "response": await resp.text()}
+                    ))
                     retry = True
     return response['choices'][0]['message']['content'], response['usage']['total_tokens']
 
