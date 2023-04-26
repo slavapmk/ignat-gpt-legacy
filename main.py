@@ -208,7 +208,7 @@ async def process_openai_request(dialogue):
                             "response": resp.json()
                         }
                         print('Handler error')
-                        return f"Catched unexpected {resp.status} result code. Please /reset and re-try request"
+                        return f"Catched unexpected {resp.status} result code. Please /reset and re-try request", -1
     return response['choices'][0]['message']['content'], response['usage']['total_tokens']
 
 
