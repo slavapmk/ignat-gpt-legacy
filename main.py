@@ -199,9 +199,11 @@ async def process_openai_request(dialogue):
                     retry = True
                 else:
                     retry = False
+                    if resp.status == 200:
+                        pass
                     if resp.status == 400 and (await resp.json())['code'] == 'context_length_exceeded':
                         return messages.many_tokens
-                    elif resp.status != 200:
+                    else:
                         manager.log[str(datetime.datetime.now())] = {
                             "headers": headers,
                             "data": data,
