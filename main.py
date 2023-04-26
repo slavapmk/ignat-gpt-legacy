@@ -193,14 +193,18 @@ async def process_openai_request(dialogue):
                     data=data,
                     timeout=600000
             ) as resp:
-                if resp.status == 200:
-                    response = await resp.json()
-                    retry = False
-                else:
-                    print(resp.status, json.dumps(
-                        {"headers": headers, "data": data, "response": await resp.text()}
-                    ))
+                if resp.status == 429:
                     retry = True
+                else:
+                    retry = False
+                    if resp.status == 200:
+                        response = await resp.json()
+                    elif resp.status == 400 and (await resp.json())['code'] == 'context_length_exceeded':
+                        return messages.many_tokens
+                    else:
+                        print(resp.status, json.dumps(
+                            {"headers": headers, "data": data, "response": await resp.text()}
+                        ))
     return response['choices'][0]['message']['content'], response['usage']['total_tokens']
 
 
