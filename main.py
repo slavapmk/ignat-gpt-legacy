@@ -1,7 +1,7 @@
 import asyncio
+import datetime
 import json
 import logging
-import datetime
 from asyncio import CancelledError
 
 import aiohttp
@@ -139,7 +139,7 @@ async def process(message: types.Message, text: str):
     task1 = asyncio.get_event_loop().create_task(process_typing_action(message))
     global free
     while not free:
-        await asyncio.sleep(1)
+        await asyncio.sleep(2)
     free = False
 
     if manager.get_data(chat_id)['settings']['darkgpt']:
@@ -178,13 +178,15 @@ async def process_typing_action(message: types.Message):
 
 
 async def process_openai_request(dialogue):
-    first = True
-    retry = False
+    attempt = 0
+    retry = True
     response = {}
-    while first or retry:
-        if not first:
+    while retry:
+        if attempt >= 10:
+            return 'There were 10 unsuccessful attempts to connect to OpenAI servers. Try to repeat the request later.'
+        if attempt != 0:
             await asyncio.sleep(21)
-        first = False
+        attempt += 1
         async with aiohttp.ClientSession() as session:
             headers = {'Content-Type': 'application/json', 'Authorization': f'Bearer {manager.tokens["openai"]}'}
             data = (json.dumps({'model': 'gpt-3.5-turbo', 'messages': dialogue}))
@@ -195,9 +197,7 @@ async def process_openai_request(dialogue):
                     timeout=600000
             ) as resp:
                 response = await resp.json()
-                if resp.status == 429:
-                    retry = True
-                else:
+                if resp.status != 429:
                     retry = False
                     if resp.status == 200:
                         pass
