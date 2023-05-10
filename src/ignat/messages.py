@@ -1,5 +1,5 @@
-import lang
-import manager
+from ignat import lang
+from ignat import manager
 
 name_russian = 'Игнат'
 name_english = 'Ignat'

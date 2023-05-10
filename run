@@ -1,8 +1,2 @@
-#!/bin/bash
-git pull
-python3 -m pip install --user --upgrade pip
-python3 -m pip install --user virtualenv
-python3 -m venv venv
-source venv/bin/activate
-python3 -m pip install -r requirements.txt -U
-screen -S gpt python3 main.py
+#!/bin/sh
+sudo docker-compose up

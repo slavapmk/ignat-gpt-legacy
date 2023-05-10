@@ -9,9 +9,9 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.utils import executor
 from aiogram.utils.exceptions import CantParseEntities
 
-import lang
-import manager
-import messages
+from ignat import lang
+from ignat import manager
+from ignat import messages
 
 logging.basicConfig(level=logging.INFO)
 bot = Bot(token=manager.tokens['telegram'])
@@ -220,5 +220,9 @@ async def hide_settings_buttons(chat_id):
     manager.get_data(chat_id)['last_settings'] = []
 
 
-if __name__ == '__main__':
+def start():
     executor.start_polling(dp)
+
+
+if __name__ == '__main__':
+    start()

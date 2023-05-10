@@ -1,4 +1,0 @@
-aiogram
-tiktoken
-requests
-aiohttp

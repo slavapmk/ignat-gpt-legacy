@@ -3,8 +3,8 @@ import atexit
 import json
 import os
 
-import lang
-import messages
+from ignat import lang
+from ignat import messages
 
 DATA_FOLDER = 'data'
 DATA_FILE = f'{DATA_FOLDER}/data.json'
