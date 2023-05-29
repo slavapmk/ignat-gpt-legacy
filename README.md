@@ -15,8 +15,17 @@ For "cold install and start" run next command:
 
 ### Manual mode
 
-* Install poetry
+* Install poetry (instructions [here](https://python-poetry.org/docs/))
+```shell
+curl -sSL https://install.python-poetry.org | python3 -
+```
 * Install poetry dependencies
+```shell
+poetry install
+```
 * Run poetry "start" task
+```shell
+poetry run start
+```
 
 After first run program create 'data' folder with tokens.json file. Insert telegram and openai token for correctly work
