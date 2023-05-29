@@ -2,6 +2,7 @@ import asyncio
 import datetime
 import json
 import logging
+import re
 from asyncio import CancelledError
 
 import aiohttp
@@ -136,7 +137,7 @@ async def process(message: types.Message, text: str):
         await message.reply(messages.many_tokens)
         return
 
-    task1 = asyncio.get_event_loop().create_task(process_typing_action(message))
+    task_typing = asyncio.get_event_loop().create_task(process_typing_action(message))
     global free
     while not free:
         await asyncio.sleep(2)
@@ -148,11 +149,16 @@ async def process(message: types.Message, text: str):
     if len(manager.get_data(chat_id)['dialogue']) == 0:
         prompt = messages.parse_prompt(message.chat.full_name, message.chat.type != 'private')
         manager.get_data(chat_id)['dialogue'] = [{"role": "system", "content": prompt}]
-    manager.get_data(chat_id)['dialogue'].append({"role": "user", "content": text})
+    manager.get_data(chat_id)['dialogue'].append({
+        "role": "user",
+        "name": re.sub(f"[^^[a-zA-Z0-9_-]{1, 64}$]", "", message.from_user.first_name),
+        "content": text
+    })
 
-    task2 = asyncio.get_event_loop().create_task(process_openai_request(manager.get_data(chat_id)['dialogue']))
-    response_text, usage = await task2
-    task1.cancel()
+    task_gpt_session = asyncio.get_event_loop().create_task(
+        process_openai_request(manager.get_data(chat_id)['dialogue']))
+    response_text, usage = await task_gpt_session
+    task_typing.cancel()
 
     manager.get_data(chat_id)['usage'] = usage
     send_text = response_text.strip()
@@ -161,10 +167,10 @@ async def process(message: types.Message, text: str):
         await message.reply(send_text, parse_mode='Markdown', allow_sending_without_reply=True,
                             disable_web_page_preview=True)
     except CantParseEntities:
-        await message.reply(messages.cant_send_with_fonts, allow_sending_without_reply=True,
-                            disable_web_page_preview=True)
+        await message.reply(messages.cant_send_with_fonts)
         await message.answer(send_text)
         print(messages.parse_error)
+
     free = True
 
 
@@ -189,7 +195,11 @@ async def process_openai_request(dialogue):
         attempt += 1
         async with aiohttp.ClientSession() as session:
             headers = {'Content-Type': 'application/json', 'Authorization': f'Bearer {manager.tokens["openai"]}'}
-            data = (json.dumps({'model': 'gpt-3.5-turbo', 'messages': dialogue}))
+            data = (json.dumps({
+                'model': 'gpt-3.5-turbo',
+                'messages': dialogue,
+                'max_tokens': 3072
+            }))
             async with session.post(
                     url='https://api.openai.com/v1/chat/completions',
                     headers=headers,
@@ -197,11 +207,12 @@ async def process_openai_request(dialogue):
                     timeout=600000
             ) as resp:
                 response = await resp.json()
+                print(response)
                 if resp.status != 429:
                     retry = False
                     if resp.status == 200:
                         pass
-                    elif resp.status == 400:
+                    elif resp.status == 400 and response['error']['type'] == 'context_length_exceeded':
                         return messages.many_tokens, -1
                     else:
                         manager.log[str(datetime.datetime.now())] = {
