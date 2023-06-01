@@ -188,8 +188,8 @@ async def process_openai_request(dialogue):
     retry = True
     response = {}
     while retry:
-        if attempt >= 10:
-            return 'There were 10 unsuccessful attempts to connect to OpenAI servers. Try to repeat the request later.'
+        if attempt >= 3:
+            return 'There were 3 unsuccessful attempts to connect to OpenAI servers. Try to repeat the request later.'
         if attempt != 0:
             await asyncio.sleep(21)
         attempt += 1
@@ -204,7 +204,7 @@ async def process_openai_request(dialogue):
                     url='https://api.openai.com/v1/chat/completions',
                     headers=headers,
                     data=data,
-                    timeout=600000
+                    timeout=60000
             ) as resp:
                 response = await resp.json()
                 print(response)
