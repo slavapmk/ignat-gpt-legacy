@@ -149,11 +149,18 @@ async def process(message: types.Message, text: str):
     if len(manager.get_data(chat_id)['dialogue']) == 0:
         prompt = messages.parse_prompt(message.chat.full_name, message.chat.type != 'private')
         manager.get_data(chat_id)['dialogue'] = [{"role": "system", "content": prompt}]
-    manager.get_data(chat_id)['dialogue'].append({
-        "role": "user",
-        "name": re.sub(f"[^^[a-zA-Z0-9_-]{1, 64}$]", "", message.from_user.first_name),
-        "content": text
-    })
+    prepared_user_name = re.sub("^[a-zA-Z0-9_-]{1,64}$", "", message.from_user.first_name)
+    if prepared_user_name == '':
+        manager.get_data(chat_id)['dialogue'].append({
+            "role": "user",
+            "content": text
+        })
+    else:
+        manager.get_data(chat_id)['dialogue'].append({
+            "role": "user",
+            "name": prepared_user_name,
+            "content": text
+        })
 
     task_gpt_session = asyncio.get_event_loop().create_task(
         process_openai_request(manager.get_data(chat_id)['dialogue']))
