@@ -196,7 +196,7 @@ async def process_openai_request(dialogue):
     response = {}
     while retry:
         if attempt >= 3:
-            return 'There were 3 unsuccessful attempts to connect to OpenAI servers. Try to repeat the request later.'
+            return 'There were 3 unsuccessful attempts to connect to OpenAI servers. Try to repeat the request later.', -1
         if attempt != 0:
             await asyncio.sleep(21)
         attempt += 1
