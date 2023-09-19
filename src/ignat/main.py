@@ -152,7 +152,6 @@ async def process(message: types.Message, text: str):
     if True:
         manager.get_data(chat_id)['dialogue'].append({
             "role": "user",
-            "name": prepared_user_name,
             "content": text
         })
 
