@@ -150,6 +150,7 @@ async def process(message: types.Message, text: str):
         prompt = messages.parse_prompt(message.chat.full_name, message.chat.type != 'private')
         manager.get_data(chat_id)['dialogue'] = [{"role": "system", "content": prompt}]
     prepared_user_name = re.sub("^[a-zA-Z0-9_-]{1,64}$", "", message.from_user.first_name)
+    print(prepared_user_name)
     if prepared_user_name == '':
         manager.get_data(chat_id)['dialogue'].append({
             "role": "user",
